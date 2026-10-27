@@ -1,0 +1,77 @@
+BEGIN
+--- P1. Inserción válida de producto
+ id_producto |   sku    | stock_actual | estado | fecha_automatica 
+-------------+----------+--------------+--------+------------------
+           1 | FER-0012 |            0 | ACTIVO | t
+(1 row)
+
+INSERT 0 1
+SAVEPOINT
+--- P2. Consulta con relaciones (producto, categoría y ubicación)
+   sku    |        nombre         | categoria  | ubicacion 
+----------+-----------------------+------------+-----------
+ FER-0012 | Martillo de uña 16 oz | Ferretería | A·E1·N2
+(1 row)
+
+--- P3. SKU duplicado (UNIQUE, se espera 23505)
+psql:db/pruebas/pruebas_basicas.sql:21: ERROR:  duplicate key value violates unique constraint "uq_producto_sku"
+DETAIL:  Key (sku)=(FER-0012) already exists.
+ROLLBACK
+--- P4. Precio de venta cero (CHECK, se espera 23514)
+psql:db/pruebas/pruebas_basicas.sql:25: ERROR:  new row for relation "producto" violates check constraint "producto_precio_venta_check"
+DETAIL:  Failing row contains (3, 1, null, FER-0099, Prueba, null, 10.00, 0.00, 0, 0, ACTIVO, 2026-10-27 00:27:44.599588-05, 2026-10-27 00:27:44.599588-05).
+ROLLBACK
+--- P5. Campo obligatorio ausente: nombre (NOT NULL, se espera 23502)
+psql:db/pruebas/pruebas_basicas.sql:29: ERROR:  null value in column "nombre" of relation "producto" violates not-null constraint
+DETAIL:  Failing row contains (4, 1, null, FER-0098, null, null, 10.00, 12.00, 0, 0, ACTIVO, 2026-10-27 00:27:44.599588-05, 2026-10-27 00:27:44.599588-05).
+ROLLBACK
+--- P6. Categoría inexistente (FK, se espera 23503)
+psql:db/pruebas/pruebas_basicas.sql:33: ERROR:  insert or update on table "producto" violates foreign key constraint "producto_id_categoria_fkey"
+DETAIL:  Key (id_categoria)=(999) is not present in table "categoria".
+ROLLBACK
+--- P7. Código EAN-13 con 12 dígitos (CHECK, se espera 23514)
+psql:db/pruebas/pruebas_basicas.sql:37: ERROR:  new row for relation "codigo_barras" violates check constraint "codigo_barras_check"
+DETAIL:  Failing row contains (1, 1, 770123456789, EAN_13, 2026-10-27 00:27:44.599588-05).
+ROLLBACK
+--- P8. Código interno válido con la secuencia
+   valor    |  tipo   
+------------+---------
+ RC00000001 | INTERNO
+(1 row)
+
+INSERT 0 1
+SAVEPOINT
+--- P9. Movimiento de entrada coherente (stock 0 + 10 = 10)
+ tipo_movimiento |  subtipo  | cantidad | stock_anterior | stock_nuevo 
+-----------------+-----------+----------+----------------+-------------
+ ENTRADA         | RECEPCION |       10 |              0 |          10
+(1 row)
+
+INSERT 0 1
+SAVEPOINT
+--- P10. Movimiento con aritmética incorrecta (CHECK, se espera 23514)
+psql:db/pruebas/pruebas_basicas.sql:54: ERROR:  new row for relation "movimiento_inventario" violates check constraint "movimiento_inventario_check1"
+DETAIL:  Failing row contains (2, 1, 1, null, null, SALIDA, DESPACHO, 3, 10, 9, null, 2026-10-27 00:27:44.599588-05).
+ROLLBACK
+--- P11. Stock negativo en producto (CHECK, se espera 23514)
+psql:db/pruebas/pruebas_basicas.sql:58: ERROR:  new row for relation "producto" violates check constraint "producto_stock_actual_check"
+DETAIL:  Failing row contains (1, 1, 2, FER-0012, Martillo de uña 16 oz, null, 60.00, 85.00, -1, 5, ACTIVO, 2026-10-27 00:27:44.599588-05, 2026-10-27 00:27:44.599588-05).
+ROLLBACK
+--- P12. Nombre de usuario duplicado sin distinguir mayúsculas (se espera 23505)
+psql:db/pruebas/pruebas_basicas.sql:62: ERROR:  duplicate key value violates unique constraint "uq_usuario_nombre"
+DETAIL:  Key (lower(nombre_usuario::text))=(gerente) already exists.
+ROLLBACK
+--- P13. Correo con formato inválido (CHECK, se espera 23514)
+psql:db/pruebas/pruebas_basicas.sql:66: ERROR:  new row for relation "usuario" violates check constraint "usuario_correo_check"
+DETAIL:  Failing row contains (3, 2, Caja, cajero1, caja-sin-arroba, x, ACTIVO, 0, null, t, null, 2026-10-27 00:27:44.599588-05, 2026-10-27 00:27:44.599588-05).
+ROLLBACK
+--- P14. El usuario de la aplicación no puede borrar auditoría (se espera 42501)
+SET
+psql:db/pruebas/pruebas_basicas.sql:71: ERROR:  permission denied for table registro_auditoria
+ROLLBACK
+--- P15. El usuario de la aplicación no puede modificar movimientos (se espera 42501)
+SET
+psql:db/pruebas/pruebas_basicas.sql:76: ERROR:  permission denied for table movimiento_inventario
+ROLLBACK
+ROLLBACK
+--- Fin: todas las pruebas se revirtieron

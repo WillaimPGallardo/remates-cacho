@@ -1,0 +1,37 @@
+ nombre_usuario |    rol    |  estado  |   hash   | cambio 
+----------------+-----------+----------+----------+--------
+ bodeguero1     | BODEGUERO | ACTIVO   | $2b$12$… | f
+ bodeguero2     | BODEGUERO | INACTIVO | $2b$12$… | t
+ cajero1        | CAJERO    | ACTIVO   | $2b$12$… | t
+ gerente        | GERENCIA  | ACTIVO   | $2b$12$… | f
+(4 rows)
+
+   sku    |           nombre           | stock_actual | stock_minimo |    codigo     |  tipo   
+----------+----------------------------+--------------+--------------+---------------+---------
+ ELE-0105 | Bombillo LED 9 W           |           48 |           20 | 036000291452  | UPC_A
+ FER-0012 | Martillo de uña 16 oz      |           15 |            5 | 7701234567897 | EAN_13
+ FER-0018 | Destornillador de estrella |            4 |           10 | RC00000002    | INTERNO
+ HOG-0230 | Juego de ollas 5 piezas    |           14 |            3 | RC00000001    | INTERNO
+(4 rows)
+
+ id |   sku    |  tipo   |  subtipo  | cantidad | ant | nuevo | usuario 
+----+----------+---------+-----------+----------+-----+-------+---------
+  1 | FER-0012 | ENTRADA | INICIAL   |       12 |   0 |    12 | gerente
+  2 | ELE-0105 | ENTRADA | INICIAL   |       48 |   0 |    48 | gerente
+  3 | HOG-0230 | ENTRADA | INICIAL   |       14 |   0 |    14 | gerente
+  4 | FER-0018 | ENTRADA | INICIAL   |        4 |   0 |     4 | gerente
+  5 | FER-0012 | SALIDA  | DESPACHO  |        7 |  12 |     5 | gerente
+  6 | FER-0012 | ENTRADA | RECEPCION |       10 |   5 |    15 | gerente
+(6 rows)
+
+    tipo_operacion     | resultado | count 
+-----------------------+-----------+-------
+ ACCESO_DENEGADO       | DENEGADO  |     1
+ CAMBIO_CONTRASENA     | EXITOSO   |     2
+ CREACION_PRODUCTO     | EXITOSO   |     4
+ GESTION_USUARIO       | EXITOSO   |     5
+ INICIO_SESION         | EXITOSO   |     2
+ INICIO_SESION_FALLIDO | FALLIDO   |     1
+ MOVIMIENTO_INVENTARIO | EXITOSO   |     6
+(7 rows)
+
