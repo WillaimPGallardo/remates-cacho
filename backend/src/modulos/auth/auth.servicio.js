@@ -10,7 +10,8 @@ const { AppError, validacion } = require('../../comun/errores');
 const { requisitosContrasena, vacio } = require('../../comun/validaciones');
 
 const MSG_INVALIDAS = 'Usuario o contraseña incorrectos';
-const horaCorta = d => new Date(d).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+// La hora se muestra en la zona del negocio (el servidor en la nube trabaja en UTC)
+const horaCorta = d => new Date(d).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', timeZone: process.env.ZONA_HORARIA || 'America/Caracas' });
 
 async function iniciarSesion({ usuario, contrasena }, ctx) {
   // Paso 4: campos obligatorios, sin consultar la base de datos
