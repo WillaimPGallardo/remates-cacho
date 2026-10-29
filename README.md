@@ -56,7 +56,7 @@ npm run dev
 cd ../frontend && npm install && npm run dev
 ```
 
-Abrir http://localhost:5173 e ingresar con **gerente / Cambiar2026**. El sistema exige cambiar esa contraseña temporal en el primer ingreso.
+Abrir http://localhost:5173 e ingresar con **Gerente / William123**
 
 ## Pruebas
 
