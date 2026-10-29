@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "test": "jest --runInBand",
     "lint": "eslint src tests",
-    "db:migrar": "node scripts/migrar.js"
+    "db:migrar": "node scripts/migrar.js",
+    "produccion": "node scripts/migrar.js && node src/server.js"
   },
   "license": "UNLICENSED",
   "private": true,
@@ -24,5 +25,8 @@
     "eslint": "^8.57.1",
     "jest": "^30.5.2",
     "supertest": "^7.3.1"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

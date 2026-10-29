@@ -1,0 +1,23 @@
+# Despliegue en Render (https://render.com) como Blueprint.
+# La base de datos PostgreSQL está en Neon (https://neon.tech); su cadena de conexión se pega en DATABASE_ADMIN_URL.
+services:
+  - type: web
+    name: remates-cacho
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci --prefix frontend && npm run build --prefix frontend && npm ci --prefix backend --omit=dev
+    # En cada arranque aplica las migraciones pendientes y luego inicia la API, que también entrega la interfaz
+    startCommand: npm run produccion --prefix backend
+    healthCheckPath: /api/v1/salud
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: DATABASE_ADMIN_URL          # cadena de conexión de Neon (usuario dueño de la base)
+        sync: false
+      - key: GERENTE_CONTRASENA_INICIAL  # contraseña del primer ingreso del gerente (se cambia al entrar)
+        sync: false
+      - key: APP_DB_PASSWORD             # contraseña del usuario app_remates; Render la genera
+        generateValue: true

@@ -71,3 +71,16 @@ npm run lint
 
 Implementado: RF-01, RF-02, RF-03, RF-04 (validación, generación e impresión de etiquetas), RF-05, RF-06, RF-07, RF-10 y el registro transversal de auditoría (RF-16).
 Pendiente: RF-08 (ajustes con autorización), RF-09, RF-11 (escaneo con cámara), ventas y comprobantes (RF-12 a RF-15), consulta de auditoría y reportes (RF-16, RF-17).
+
+## Publicación en internet (Render + Neon)
+
+1. En **Neon** (https://neon.tech) cree un proyecto con PostgreSQL 16 y copie la cadena de conexión
+   (*Connection string*, termina en `?sslmode=require`).
+2. En **Render** (https://render.com) elija **New → Blueprint**, conecte este repositorio y Render leerá `render.yaml`.
+3. Complete las variables que pide:
+   - `DATABASE_ADMIN_URL`: la cadena de Neon.
+   - `GERENTE_CONTRASENA_INICIAL`: la contraseña con la que el gerente entrará la primera vez.
+4. Al terminar el despliegue, la aplicación queda en `https://remates-cacho.onrender.com` (o el nombre asignado).
+   Cada arranque aplica solo las migraciones pendientes (tabla `schema_migraciones`).
+
+El plan gratuito de Render suspende el servicio tras 15 minutos sin uso; la primera visita después tarda cerca de un minuto en responder.
