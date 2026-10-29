@@ -6,7 +6,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm ci --prefix frontend && npm run build --prefix frontend && npm ci --prefix backend --omit=dev
+    buildCommand: npm ci --include=dev --prefix frontend && npm run build --prefix frontend && npm ci --prefix backend --omit=dev
     # En cada arranque aplica las migraciones pendientes y luego inicia la API, que también entrega la interfaz
     startCommand: npm run produccion --prefix backend
     healthCheckPath: /api/v1/salud
