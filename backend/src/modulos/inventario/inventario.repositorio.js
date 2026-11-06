@@ -1,8 +1,14 @@
 const bloquearProducto = (db, id) => db.query('SELECT id_producto, sku, nombre, estado, stock_actual FROM producto WHERE id_producto = $1 FOR UPDATE', [id]).then(r => r.rows[0]);
 const insertarMovimiento = (db, m) => db.query(
-  `INSERT INTO movimiento_inventario (id_producto, id_usuario, tipo_movimiento, subtipo, cantidad, stock_anterior, stock_nuevo, motivo)
-   VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id_movimiento, fecha_hora`,
-  [m.id_producto, m.id_usuario, m.tipo, m.subtipo, m.cantidad, m.stock_anterior, m.stock_nuevo, m.motivo || null]).then(r => r.rows[0]);
+  `INSERT INTO movimiento_inventario (id_producto, id_usuario, tipo_movimiento, subtipo, cantidad, stock_anterior, stock_nuevo, motivo, clave_operacion)
+   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id_movimiento, fecha_hora`,
+  [m.id_producto, m.id_usuario, m.tipo, m.subtipo, m.cantidad, m.stock_anterior, m.stock_nuevo, m.motivo || null, m.clave_operacion || null]).then(r => r.rows[0]);
+
+// Movimiento ya registrado con una clave de operación (reintentos tras perder la conexión, PG-15)
+const porClave = (db, clave) => db.query(
+  `SELECT m.id_movimiento, m.fecha_hora, m.tipo_movimiento AS tipo, m.subtipo, m.cantidad, m.stock_anterior, m.stock_nuevo,
+          m.id_usuario, p.sku, p.nombre, p.stock_actual
+   FROM movimiento_inventario m JOIN producto p USING (id_producto) WHERE m.clave_operacion = $1`, [clave]).then(r => r.rows[0]);
 const actualizarStock = (db, id, stock) => db.query('UPDATE producto SET stock_actual = $2 WHERE id_producto = $1', [id, stock]);
 
 function kardex(db, idProducto, { desde, hasta, tipo }, limite, desplazamiento) {
@@ -21,4 +27,4 @@ function kardex(db, idProducto, { desde, hasta, tipo }, limite, desplazamiento) 
   ]).then(([f, t]) => ({ movimientos: f.rows, ...t.rows[0] }));
 }
 
-module.exports = { bloquearProducto, insertarMovimiento, actualizarStock, kardex };
+module.exports = { bloquearProducto, insertarMovimiento, actualizarStock, kardex, porClave };

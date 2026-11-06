@@ -8,7 +8,7 @@ const opcionesCookie = () => ({ httpOnly: true, sameSite: 'strict', secure: proc
 
 router.post('/login', async (req, res, next) => {
   try {
-    const r = await servicio.iniciarSesion(req.body || {}, { ip: req.ip, dispositivo: req.get('user-agent') });
+    const r = await servicio.iniciarSesion(req.body || {}, contexto(req));
     res.cookie(COOKIE, r.token, opcionesCookie()).json({ usuario: r.usuario });
   } catch (e) { next(e); }
 });
@@ -19,7 +19,10 @@ router.get('/yo', autenticar, (req, res) => {
 });
 
 router.post('/cambiar-contrasena', autenticar, async (req, res, next) => {
-  try { await servicio.cambiarContrasena(req.usuario.id_usuario, req.body || {}, contexto(req)); res.json({ mensaje: 'Contraseña actualizada' }); } catch (e) { next(e); }
+  try {
+    const r = await servicio.cambiarContrasena(req.usuario.id_usuario, req.body || {}, contexto(req));
+    res.cookie(COOKIE, r.token, opcionesCookie()).json({ mensaje: 'Contraseña actualizada' });   // nueva sesión completa
+  } catch (e) { next(e); }
 });
 
 router.post('/logout', autenticar, async (req, res, next) => {

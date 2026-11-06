@@ -34,7 +34,9 @@ async function crear(datos, ctx) {
     if (await repo.existeUsuario(db, d.nombre_usuario)) dup.nombre_usuario = 'El nombre de usuario ya se encuentra registrado';
     if (await repo.existeCorreo(db, d.correo)) dup.correo = 'El correo ya se encuentra registrado';
     if (Object.keys(dup).length) throw conflicto('Datos duplicados', dup);
-    const id = await repo.crear(db, { ...d, id_rol: await repo.idRol(db, d.rol), hash });
+    // La contraseña inicial la define la Gerencia y se trata como temporal: vence a las 24 h y obliga al cambio (PG-04)
+    const expira = new Date(Date.now() + P.HORAS_CONTRASENA_TEMPORAL * 3600000);
+    const id = await repo.crear(db, { ...d, id_rol: await repo.idRol(db, d.rol), hash, expira });
     await registrar(db, { ...ctx, modulo: 'Usuarios', tipo: 'GESTION_USUARIO', entidad: 'usuario', idEntidad: id, nuevo: { accion: 'CREAR', ...d } });
     return publico(await repo.obtener(db, id));
   });
@@ -78,13 +80,14 @@ async function cambiarEstado(id, estado, ctx) {
   });
 }
 
-// Contraseña temporal de 10 caracteres que cumple PG-03
+// Contraseña temporal (PG-04): 12 caracteres aleatorios de un generador criptográfico, sin caracteres ambiguos (0/O, 1/l/I)
 function generarTemporal() {
-  const may = 'ABCDEFGHJKLMNPQRSTUVWXYZ', min = 'abcdefghijkmnpqrstuvwxyz', num = '23456789', todos = may + min + num;
-  const pick = s => s[crypto.randomInt(s.length)];
-  const c = [pick(may), pick(min), pick(num), ...Array.from({ length: 7 }, () => pick(todos))];
-  for (let i = c.length - 1; i > 0; i--) { const j = crypto.randomInt(i + 1); [c[i], c[j]] = [c[j], c[i]]; }
-  return c.join('');
+  const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let c;
+  do {
+    c = Array.from({ length: P.LONGITUD_TEMPORAL }, () => alfabeto[crypto.randomInt(alfabeto.length)]).join('');
+  } while (requisitosContrasena(c).length);   // descarta el caso improbable de una secuencia trivial
+  return c;
 }
 
 // Subflujo D. Restablecer contraseña

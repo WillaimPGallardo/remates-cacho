@@ -3,3 +3,5 @@ node_modules/
 frontend/dist/
 coverage/
 *.log
+backend/logs/
+backend/respaldos/

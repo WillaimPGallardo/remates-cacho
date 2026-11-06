@@ -8,21 +8,27 @@ const { enTransaccion } = require('../../comun/transaccion');
 const { registrar } = require('../../comun/auditoria');
 const { validar, reglas, texto, vacio } = require('../../comun/validaciones');
 const { validarCodigo, formatoInterno } = require('../../comun/codigos');
-const { validacion, noEncontrado, conflicto } = require('../../comun/errores');
+const { AppError, validacion, noEncontrado, conflicto } = require('../../comun/errores');
 
 const TIPOS_CODIGO = ['EAN_13', 'UPC_A', 'CODE_128'];
+const horaCorta = d => new Date(d).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', timeZone: process.env.ZONA_HORARIA || 'America/Caracas' });
 
 // Oculta el precio de compra a quien no tiene el permiso (RF-05)
 const vista = (p, permisos) => (p && !permisos.includes('PRECIO_COMPRA_VER') ? { ...p, precio_compra: undefined } : p);
 
+// RF-05: el mínimo de 3 caracteres aplica solo a la búsqueda parcial por nombre; un SKU o código exacto
+// se busca con cualquier longitud. Con más coincidencias que el límite se informa el total encontrado.
 async function buscar(q, usuario) {
   const criterio = texto(q.q);
-  if (criterio && criterio.length < 3 && !/^\d+$/.test(criterio)) throw validacion({ q: 'Escriba al menos 3 caracteres' });
+  const soloExacta = criterio.length > 0 && criterio.length < 3;
   const soloActivos = !usuario.permisos.includes('PRODUCTOS_GESTIONAR');
   const pagina = Math.max(1, Number(q.pagina) || 1);
-  const limite = q.limite === '20' ? 20 : P.POR_PAGINA_LISTADOS;
-  const r = await repo.buscar(pool, { ...q, q: criterio }, soloActivos, limite, (pagina - 1) * limite);
-  return { ...r, pagina, productos: r.productos.map(p => vista(p, usuario.permisos)), mensaje: r.total === 0 ? 'No se encontraron productos' : null };
+  const limite = q.limite === '20' ? P.RESULTADOS_BUSQUEDA : P.POR_PAGINA_LISTADOS;
+  const r = await repo.buscar(pool, { ...q, q: criterio }, soloActivos, limite, (pagina - 1) * limite, soloExacta);
+  let mensaje = null;
+  if (r.total === 0) mensaje = soloExacta ? 'No hay un SKU o código con ese valor. Para buscar por nombre escriba al menos 3 caracteres' : 'No se encontraron productos';
+  else if (r.total > limite) mensaje = `Se muestran ${r.productos.length} de ${r.total} resultados. Escriba más caracteres para precisar la búsqueda`;
+  return { ...r, pagina, limite, productos: r.productos.map(p => vista(p, usuario.permisos)), mensaje };
 }
 
 async function obtener(id, usuario) {
@@ -81,6 +87,37 @@ async function crear(datos, ctx) {
   });
 }
 
+// Edición simultánea: informa quién modificó la ficha y a qué hora (RF-03, CU-003)
+async function verificarVersion(db, id, antes, fechaRecibida) {
+  if (!fechaRecibida || new Date(fechaRecibida).getTime() === new Date(antes.fecha_actualizacion).getTime()) return;
+  const ult = await repo.ultimaModificacion(db, id);
+  const quien = ult ? ` por ${ult.usuario} a las ${horaCorta(ult.fecha_hora)}` : ' por otro usuario';
+  throw new AppError(409, 'MODIFICADO', `El producto fue modificado${quien}. Recargue la ficha`, { _recargar: true });
+}
+
+// Reglas de la edición: SKU permanente y confirmación para inactivar con existencias
+async function verificarCambios(db, antes, d, confirmarInactivar) {
+  // El SKU es permanente: aparece en etiquetas, kardex y comprobantes
+  if (d.sku !== antes.sku) throw validacion({ sku: 'El SKU no se puede modificar. Si se registró con error, inactive el producto y registre uno nuevo' });
+  if (!(await repo.existeCategoria(db, d.id_categoria))) throw validacion({ id_categoria: 'Categoría no válida' });
+  // Las existencias y el historial se conservan al inactivar
+  const inactivaConStock = antes.estado === 'ACTIVO' && d.estado === 'INACTIVO' && antes.stock_actual > 0;
+  if (inactivaConStock && confirmarInactivar !== true) {
+    throw validacion({ estado: `El producto tiene ${antes.stock_actual} unidades en existencia. Al inactivarlo no aparecerá en ventas ni en escaneo. Confirme para continuar`, _requiereConfirmacion: true });
+  }
+}
+
+// Auditoría de cada campo cambiado; el precio de venta como CAMBIO_PRECIO
+async function auditarCambios(db, id, antes, d, ctx) {
+  const campos = ['nombre', 'referencia', 'id_categoria', 'id_ubicacion', 'precio_compra', 'stock_minimo', 'estado'];
+  const ant = {}, nue = {};
+  for (const c of campos) if (String(antes[c] ?? '') !== String(d[c] ?? '')) { ant[c] = antes[c]; nue[c] = d[c]; }
+  if (Object.keys(nue).length) await registrar(db, { ...ctx, modulo: 'Catálogo', tipo: 'ACTUALIZACION_PRODUCTO', entidad: 'producto', idEntidad: id, anterior: ant, nuevo: nue });
+  if (Number(antes.precio_venta) !== Number(d.precio_venta)) {
+    await registrar(db, { ...ctx, modulo: 'Catálogo', tipo: 'CAMBIO_PRECIO', entidad: 'producto', idEntidad: id, anterior: { precio_venta: antes.precio_venta }, nuevo: { precio_venta: Number(d.precio_venta).toFixed(2) } });
+  }
+}
+
 // RF-03 subflujo B: actualizar (el stock no se modifica aquí)
 async function actualizar(id, datos, ctx) {
   const d = normalizar(datos);
@@ -89,19 +126,10 @@ async function actualizar(id, datos, ctx) {
   return enTransaccion(async db => {
     const antes = await repo.obtener(db, id, true);
     if (!antes) throw noEncontrado('El producto no existe');
-    if (datos.fecha_actualizacion && new Date(datos.fecha_actualizacion).getTime() !== new Date(antes.fecha_actualizacion).getTime()) {
-      throw conflicto('El producto fue modificado por otro usuario. Recargue la ficha');
-    }
-    if (!(await repo.existeCategoria(db, d.id_categoria))) throw validacion({ id_categoria: 'Categoría no válida' });
-    if (d.sku !== antes.sku && await repo.existeSku(db, d.sku, id)) throw conflicto('El SKU ya existe', { sku: 'El SKU ya existe' });
+    await verificarVersion(db, id, antes, datos.fecha_actualizacion);
+    await verificarCambios(db, antes, d, datos.confirmar_inactivar);
     await repo.actualizar(db, id, d);
-    const campos = ['sku', 'nombre', 'referencia', 'id_categoria', 'id_ubicacion', 'precio_compra', 'stock_minimo', 'estado'];
-    const ant = {}, nue = {};
-    for (const c of campos) if (String(antes[c] ?? '') !== String(d[c] ?? '')) { ant[c] = antes[c]; nue[c] = d[c]; }
-    if (Object.keys(nue).length) await registrar(db, { ...ctx, modulo: 'Catálogo', tipo: 'ACTUALIZACION_PRODUCTO', entidad: 'producto', idEntidad: id, anterior: ant, nuevo: nue });
-    if (Number(antes.precio_venta) !== Number(d.precio_venta)) {
-      await registrar(db, { ...ctx, modulo: 'Catálogo', tipo: 'CAMBIO_PRECIO', entidad: 'producto', idEntidad: id, anterior: { precio_venta: antes.precio_venta }, nuevo: { precio_venta: Number(d.precio_venta).toFixed(2) } });
-    }
+    await auditarCambios(db, id, antes, d, ctx);
     return repo.obtener(db, id);
   });
 }

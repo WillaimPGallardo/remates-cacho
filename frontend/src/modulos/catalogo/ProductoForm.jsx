@@ -13,23 +13,32 @@ export default function ProductoForm() {
   const [listas, setListas] = useState({ categorias: [], ubicaciones: [] });
   const [d, setD] = useState({ sku: '', nombre: '', referencia: '', id_categoria: '', id_ubicacion: '', precio_compra: '', precio_venta: '', stock_minimo: '0', existencia_inicial: '', tipo_codigo: 'EAN_13', codigo: '', estado: 'ACTIVO' });
   const [err, setErr] = useState({ campos: {}, mensaje: '' });
-  const [confirmarPrecio, setConfirmarPrecio] = useState(false);
+  // Confirmaciones que pide el servidor: precio bajo el costo (PG-08) e inactivar con existencias (RF-03)
+  const [confirmar, setConfirmar] = useState(null);   // { tipo: 'precio' | 'inactivar', texto }
+  const [confirmados, setConfirmados] = useState({});
+  const [recargar, setRecargar] = useState(false);
 
+  const cargar = () => api(`/productos/${id}`).then(p => setD({ ...p, id_ubicacion: p.id_ubicacion ?? '' })).catch(e => setErr({ campos: {}, mensaje: e.message }));
   useEffect(() => {
     api('/productos/listas').then(setListas);
-    if (editar) api(`/productos/${id}`).then(p => setD({ ...p, id_ubicacion: p.id_ubicacion ?? '' })).catch(e => setErr({ campos: {}, mensaje: e.message }));
+    if (editar) cargar();
   }, [id]);
   const set = k => e => setD({ ...d, [k]: e.target.value });
 
-  async function guardar(e, confirmado = false) {
+  async function guardar(e, extra = {}) {
     e?.preventDefault();
+    const conf = { ...confirmados, ...extra };
+    setConfirmados(conf);
     try {
-      const datos = { ...d, confirmar_precio_bajo: confirmado };
+      const datos = { ...d, confirmar_precio_bajo: !!conf.precio, confirmar_inactivar: !!conf.inactivar };
       const r = editar ? await api(`/productos/${id}`, { metodo: 'PUT', datos }) : await api('/productos', { metodo: 'POST', datos });
       if (editar) nav('/productos', { state: { aviso: `Producto ${r.sku} actualizado` } });
       else nav(`/productos/${r.id_producto}/codigo`, { state: { nuevo: true } });   // registrado: pasa a imprimir etiquetas
     } catch (ex) {
-      if (ex.campos?._requiereConfirmacion) return setConfirmarPrecio(true);
+      if (ex.campos?._requiereConfirmacion) {
+        return setConfirmar(ex.campos.estado ? { tipo: 'inactivar', texto: ex.campos.estado } : { tipo: 'precio', texto: `El precio de venta (${d.precio_venta}) es menor que el de compra (${d.precio_compra}). ¿Desea guardar de todas formas?` });
+      }
+      setRecargar(!!ex.campos?._recargar);   // otro usuario modificó la ficha
       setErr({ campos: ex.campos, mensaje: ex.message });
     }
   }
@@ -41,14 +50,15 @@ export default function ProductoForm() {
         <div className="card" style={{ flex: 2 }}>
           <b>Datos del producto</b>
           <div className="row">
-            <Campo etiqueta="SKU" obligatorio error={c.sku} ayuda="3 a 20: mayúsculas, números o guion"><Entrada value={d.sku} onChange={e => setD({ ...d, sku: e.target.value.toUpperCase() })} error={c.sku} /></Campo>
+            <Campo etiqueta="SKU" obligatorio error={c.sku} ayuda={editar ? 'El SKU no se modifica después del registro' : '3 a 20: mayúsculas, números o guion'}>
+              <Entrada className={editar ? 'in ro' : undefined} readOnly={editar} value={d.sku} onChange={e => setD({ ...d, sku: e.target.value.toUpperCase() })} error={c.sku} /></Campo>
             <Campo etiqueta="Nombre" obligatorio error={c.nombre}><Entrada value={d.nombre} onChange={set('nombre')} error={c.nombre} /></Campo>
             <Campo etiqueta="Referencia" error={c.referencia}><Entrada value={d.referencia || ''} onChange={set('referencia')} /></Campo>
           </div>
           <div className="row">
             <Campo etiqueta="Categoría" obligatorio error={c.id_categoria}><Selector vacio="Seleccione…" opciones={listas.categorias.map(x => ({ valor: x.id_categoria, texto: x.nombre }))} value={d.id_categoria} onChange={set('id_categoria')} error={c.id_categoria} /></Campo>
             <Campo etiqueta="Ubicación"><Selector vacio="Sin ubicación" opciones={listas.ubicaciones.map(x => ({ valor: x.id_ubicacion, texto: x.nombre }))} value={d.id_ubicacion} onChange={set('id_ubicacion')} /></Campo>
-            {editar && <Campo etiqueta="Estado" obligatorio><Selector opciones={[{ valor: 'ACTIVO', texto: 'Activo' }, { valor: 'INACTIVO', texto: 'Inactivo' }]} value={d.estado} onChange={set('estado')} /></Campo>}
+            {editar && <Campo etiqueta="Estado" obligatorio><Selector opciones={[{ valor: 'ACTIVO', texto: 'Activo' }, { valor: 'INACTIVO', texto: 'Inactivo' }]} value={d.estado} onChange={set('estado')} error={c.estado} /></Campo>}
           </div>
           <div className="row">
             <Campo etiqueta="Precio de compra (Bs.)" obligatorio error={c.precio_compra} ayuda="Mayor que cero, hasta 2 decimales"><Entrada inputMode="decimal" value={d.precio_compra} onChange={set('precio_compra')} error={c.precio_compra} /></Campo>
@@ -68,11 +78,13 @@ export default function ProductoForm() {
         </div>
       </div>
       <Alerta>{err.mensaje && !['Revise los datos ingresados', 'Código duplicado'].includes(err.mensaje) ? err.mensaje : ''}</Alerta>
+      {recargar && <div className="row derecha"><button type="button" className="btn" onClick={() => { setRecargar(false); setErr({ campos: {}, mensaje: '' }); cargar(); }}>Recargar la ficha</button></div>}
       <div className="row derecha"><button type="button" className="btn" onClick={() => nav('/productos')}>Cancelar</button><button className="btn p">Guardar</button></div>
-      {confirmarPrecio && (
-        <Modal titulo="Precio de venta menor que el de compra" onCerrar={() => setConfirmarPrecio(false)}>
-          <p className="mut">El precio de venta ({d.precio_venta}) es menor que el de compra ({d.precio_compra}). ¿Desea guardar de todas formas?</p>
-          <div className="row derecha"><button type="button" className="btn" onClick={() => setConfirmarPrecio(false)}>Corregir</button><button type="button" className="btn p" onClick={() => { setConfirmarPrecio(false); guardar(null, true); }}>Guardar de todas formas</button></div>
+      {confirmar && (
+        <Modal titulo={confirmar.tipo === 'precio' ? 'Precio de venta menor que el de compra' : 'Inactivar producto con existencias'} onCerrar={() => setConfirmar(null)}>
+          <p className="mut">{confirmar.texto}</p>
+          <div className="row derecha"><button type="button" className="btn" onClick={() => setConfirmar(null)}>Corregir</button>
+            <button type="button" className="btn p" onClick={() => { const t = confirmar.tipo; setConfirmar(null); guardar(null, { [t]: true }); }}>Guardar de todas formas</button></div>
         </Modal>)}
     </form>
   );

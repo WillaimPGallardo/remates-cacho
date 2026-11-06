@@ -5,9 +5,9 @@ const buscarPorUsuarioOCorreo = (db, valor) => db.query(
 const actualizarIntentos = (db, id, intentos, bloqueadoHasta) => db.query(
   'UPDATE usuario SET intentos_fallidos = $2, bloqueado_hasta = $3 WHERE id_usuario = $1', [id, intentos, bloqueadoHasta]);
 
-const crearSesion = (db, id, tokenHash, ip, dispositivo) => db.query(
-  'INSERT INTO sesion (id_usuario, token_hash, direccion_ip, dispositivo) VALUES ($1,$2,$3,$4)',
-  [id, tokenHash, ip, dispositivo ? String(dispositivo).slice(0, 150) : null]);
+const crearSesion = (db, id, tokenHash, ip, dispositivo, restringida = false) => db.query(
+  'INSERT INTO sesion (id_usuario, token_hash, direccion_ip, dispositivo, restringida) VALUES ($1,$2,$3,$4,$5)',
+  [id, tokenHash, ip, dispositivo ? String(dispositivo).slice(0, 150) : null, restringida]);
 
 const cerrarSesion = (db, tokenHash) => db.query('UPDATE sesion SET activa = FALSE WHERE token_hash = $1', [tokenHash]);
 const cerrarSesionesUsuario = (db, id) => db.query('UPDATE sesion SET activa = FALSE WHERE id_usuario = $1 AND activa', [id]);

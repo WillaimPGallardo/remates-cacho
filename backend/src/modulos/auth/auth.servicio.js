@@ -20,17 +20,13 @@ async function iniciarSesion({ usuario, contrasena }, ctx) {
   }
   // Cada intento queda registrado aunque falle: por eso se confirma la transacción y el error se lanza después
   const res = await enTransaccion(async db => {
-    const aud = { modulo: 'Seguridad', ip: ctx.ip, dispositivo: ctx.dispositivo };
+    const aud = { modulo: 'Seguridad', ip: ctx.ip, dispositivo: ctx.dispositivo, correlacion: ctx.correlacion };
     const u = await repo.buscarPorUsuarioOCorreo(db, usuario.trim());
     if (!u) {
       await registrar(db, { ...aud, tipo: 'INICIO_SESION_FALLIDO', entidad: 'usuario', idEntidad: usuario.slice(0, 50), resultado: 'FALLIDO', codigoError: 'NO_EXISTE' });
       return { error: new AppError(401, 'CREDENCIALES', MSG_INVALIDAS) };
     }
     aud.idUsuario = u.id_usuario;
-    if (u.estado !== 'ACTIVO') {
-      await registrar(db, { ...aud, tipo: 'ACCESO_DENEGADO', entidad: 'usuario', idEntidad: u.id_usuario, resultado: 'DENEGADO', codigoError: 'INACTIVO' });
-      return { error: new AppError(403, 'CUENTA_INACTIVA', 'Cuenta inactiva. Comuníquese con la Gerencia') };
-    }
     let intentos = u.intentos_fallidos;
     if (u.bloqueado_hasta && new Date(u.bloqueado_hasta) > new Date()) {
       return { error: new AppError(423, 'CUENTA_BLOQUEADA', `Cuenta bloqueada temporalmente. Intente de nuevo a las ${horaCorta(u.bloqueado_hasta)}`) };
@@ -50,14 +46,22 @@ async function iniciarSesion({ usuario, contrasena }, ctx) {
       const quedan = P.INTENTOS_MAXIMOS - intentos;
       return { error: new AppError(401, 'CREDENCIALES', `${MSG_INVALIDAS}. Le ${quedan === 1 ? 'queda 1 intento' : `quedan ${quedan} intentos`}`) };
     }
+    // El estado de la cuenta se informa solo después de una contraseña correcta (no revela cuentas a terceros)
+    if (u.estado !== 'ACTIVO') {
+      await registrar(db, { ...aud, tipo: 'ACCESO_DENEGADO', entidad: 'usuario', idEntidad: u.id_usuario, resultado: 'DENEGADO', codigoError: 'INACTIVO' });
+      return { error: new AppError(403, 'CUENTA_INACTIVA', 'Cuenta inactiva. Comuníquese con la Gerencia') };
+    }
     if (u.requiere_cambio_contrasena && u.contrasena_temporal_expira && new Date(u.contrasena_temporal_expira) < new Date()) {
       await registrar(db, { ...aud, tipo: 'ACCESO_DENEGADO', entidad: 'usuario', idEntidad: u.id_usuario, resultado: 'DENEGADO', codigoError: 'TEMPORAL_VENCIDA' });
       return { error: new AppError(403, 'TEMPORAL_VENCIDA', 'La contraseña temporal venció. Solicite un nuevo restablecimiento a la Gerencia') };
     }
     await repo.actualizarIntentos(db, u.id_usuario, 0, null);
     const token = crypto.randomBytes(32).toString('hex');
-    await repo.crearSesion(db, u.id_usuario, hashToken(token), ctx.ip, ctx.dispositivo);
-    await registrar(db, { ...aud, tipo: 'INICIO_SESION', entidad: 'usuario', idEntidad: u.id_usuario, resultado: 'EXITOSO' });
+    // Con contraseña temporal vigente la sesión es RESTRINGIDA: solo permite cambiar la contraseña y cerrar sesión.
+    // La sesión con los permisos del rol se crea después del cambio (cambiarContrasena).
+    const restringida = u.requiere_cambio_contrasena;
+    await repo.crearSesion(db, u.id_usuario, hashToken(token), ctx.ip, ctx.dispositivo, restringida);
+    await registrar(db, { ...aud, tipo: 'INICIO_SESION', entidad: 'usuario', idEntidad: u.id_usuario, nuevo: { sesion: restringida ? 'RESTRINGIDA' : 'COMPLETA' }, resultado: 'EXITOSO' });
     return { token, usuario: { id: u.id_usuario, nombre: u.nombre_completo, usuario: u.nombre_usuario, rol: u.rol, requiereCambio: u.requiere_cambio_contrasena } };
   });
   if (res.error) throw res.error;
@@ -76,16 +80,21 @@ async function cambiarContrasena(idUsuario, { actual, nueva, confirmacion }, ctx
   if (Object.keys(errores).length) throw validacion(errores);
   if (!(await bcrypt.compare(actual, u.contrasena_hash))) throw validacion({ actual: 'La contraseña actual no es correcta' });
   const hash = await bcrypt.hash(nueva, P.BCRYPT_COSTO);
+  const token = crypto.randomBytes(32).toString('hex');
   await enTransaccion(async db => {
     await repo.guardarContrasena(db, idUsuario, hash);
-    await registrar(db, { idUsuario, modulo: 'Seguridad', tipo: 'CAMBIO_CONTRASENA', entidad: 'usuario', idEntidad: idUsuario, ip: ctx.ip, dispositivo: ctx.dispositivo });
+    // Se invalidan las sesiones anteriores (incluida la restringida) y se crea la sesión completa del rol
+    await repo.cerrarSesionesUsuario(db, idUsuario);
+    await repo.crearSesion(db, idUsuario, hashToken(token), ctx.ip, ctx.dispositivo, false);
+    await registrar(db, { idUsuario, modulo: 'Seguridad', tipo: 'CAMBIO_CONTRASENA', entidad: 'usuario', idEntidad: idUsuario, ip: ctx.ip, dispositivo: ctx.dispositivo, correlacion: ctx.correlacion });
   });
+  return { token };
 }
 
 async function cerrarSesion(token, ctx) {
   await enTransaccion(async db => {
     await repo.cerrarSesion(db, hashToken(token));
-    await registrar(db, { idUsuario: ctx.idUsuario, modulo: 'Seguridad', tipo: 'CIERRE_SESION', ip: ctx.ip, dispositivo: ctx.dispositivo });
+    await registrar(db, { idUsuario: ctx.idUsuario, modulo: 'Seguridad', tipo: 'CIERRE_SESION', ip: ctx.ip, dispositivo: ctx.dispositivo, correlacion: ctx.correlacion });
   });
 }
 

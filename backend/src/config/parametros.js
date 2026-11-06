@@ -4,12 +4,16 @@ module.exports = Object.freeze({
   MINUTOS_BLOQUEO: 15,                 // PG-01
   MINUTOS_INACTIVIDAD: 30,             // PG-02
   HORAS_SESION_MAXIMA: 12,             // PG-02
-  BCRYPT_COSTO: 12,                    // PG-03
+  CONTRASENA_MIN: 12,                  // PG-03 (NIST SP 800-63B: longitud en lugar de reglas de composición)
+  CONTRASENA_MAX: 64,                  // PG-03 (bcrypt procesa como máximo 72 bytes)
+  BCRYPT_COSTO: Number(process.env.BCRYPT_COSTO) || 12,   // PG-03 (verificar con npm run medir:bcrypt)
   HORAS_CONTRASENA_TEMPORAL: 24,       // PG-04
+  LONGITUD_TEMPORAL: 12,               // PG-04
   CANTIDAD_MAXIMA: 99999,              // PG-09
   DIAS_RANGO_DEFECTO: 30,              // PG-14
   MESES_RANGO_MAXIMO: 12,              // PG-14
   POR_PAGINA_LISTADOS: 25,             // PG-14
   POR_PAGINA_KARDEX: 50,               // PG-14
+  RESULTADOS_BUSQUEDA: 20,             // RF-05
   COPIAS_ETIQUETA_MAX: 100,            // PG-16
 });

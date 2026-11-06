@@ -4,17 +4,18 @@ import { api } from '../../comun/api';
 import { useSesion } from '../../comun/sesion';
 import { Campo, Entrada, Alerta } from '../../comun/ui';
 
+// PG-03: de 12 a 64 caracteres, se admiten frases con espacios y no se exigen mayúsculas, números ni símbolos.
+// El servidor además rechaza las contraseñas comunes o filtradas y las secuencias simples.
 export const requisitos = (c, usuario) => [
-  ['Mínimo 8 caracteres', c.length >= 8],
-  ['Al menos una letra mayúscula y una minúscula', /[A-Z]/.test(c) && /[a-z]/.test(c)],
-  ['Al menos un número', /\d/.test(c)],
-  ['Diferente del nombre de usuario', !!c && c.toLowerCase() !== (usuario || '').toLowerCase()],
+  ['De 12 a 64 caracteres (puede ser una frase con espacios)', [...c].length >= 12 && [...c].length <= 64],
+  ['No contiene el nombre de usuario', !!c && !(usuario && c.toLowerCase().includes(usuario.toLowerCase()))],
 ];
 
 export function ListaRequisitos({ clave, usuario }) {
   return (
     <div className="req">
       {requisitos(clave, usuario).map(([t, ok]) => <div key={t} className={ok ? 'y' : 'n'}>{ok ? '✓' : '✗'} {t}</div>)}
+      <div className="mut">Al guardar se verifica que no sea una contraseña común o filtrada ni una secuencia simple.</div>
     </div>
   );
 }

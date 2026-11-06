@@ -23,14 +23,35 @@ const reglas = {
   motivo: v => (texto(v).length >= 10 && texto(v).length <= 255 ? null : 'Escriba entre 10 y 255 caracteres'),
 };
 
-// Política de contraseña PG-03: devuelve la lista de requisitos incumplidos
+// Política de contraseña PG-03 (NIST SP 800-63B): longitud de 12 a 64 caracteres, se admiten frases con espacios,
+// sin reglas obligatorias de composición; se rechazan contraseñas comunes o filtradas, las que contienen el
+// nombre de usuario y las secuencias triviales. Devuelve la lista de requisitos incumplidos.
+const fs = require('fs');
+const path = require('path');
+let comunes = null;
+const listaComunes = () => comunes || (comunes = new Set(
+  fs.readFileSync(path.join(__dirname, 'datos', 'contrasenas_comunes.txt'), 'utf8').split('\n').map(x => x.trim()).filter(Boolean)));
+
+function esTrivial(c) {
+  const s = c.toLowerCase().replace(/\s+/g, '');
+  if (/^(.)\1+$/.test(s)) return true;                                   // aaaaaaaaaaaa
+  const filas = ['0123456789012345678901234567890', '9876543210987654321098765432109',
+    'abcdefghijklmnopqrstuvwxyz', 'zyxwvutsrqponmlkjihgfedcba', 'qwertyuiopasdfghjklñzxcvbnm', 'qwertyuiopasdfghjklzxcvbnm'];
+  if (filas.some(f => f.includes(s))) return true;                         // 123456789012, qwertyuiopas
+  const n = s.length;                                                      // patrón repetido: abcabcabcabc
+  for (let k = 1; k <= n / 2; k++) if (n % k === 0 && s.slice(0, k).repeat(n / k) === s) return true;
+  return false;
+}
+
 function requisitosContrasena(clave, nombreUsuario) {
   const c = String(clave || '');
   const fallas = [];
-  if (c.length < 8) fallas.push('Mínimo 8 caracteres');
-  if (!/[A-Z]/.test(c) || !/[a-z]/.test(c)) fallas.push('Al menos una mayúscula y una minúscula');
-  if (!/[0-9]/.test(c)) fallas.push('Al menos un número');
-  if (nombreUsuario && c.toLowerCase() === String(nombreUsuario).toLowerCase()) fallas.push('Distinta del nombre de usuario');
+  if ([...c].length < P.CONTRASENA_MIN) fallas.push(`Mínimo ${P.CONTRASENA_MIN} caracteres`);
+  if ([...c].length > P.CONTRASENA_MAX) fallas.push(`Máximo ${P.CONTRASENA_MAX} caracteres`);
+  const minus = c.toLowerCase().trim();
+  if (nombreUsuario && minus.includes(String(nombreUsuario).toLowerCase())) fallas.push('No debe contener el nombre de usuario');
+  if (listaComunes().has(minus) || listaComunes().has(minus.replace(/\s+/g, ''))) fallas.push('Es una contraseña común o filtrada');
+  else if (c && esTrivial(c)) fallas.push('No debe ser una secuencia o repetición simple');
   return fallas;
 }
 

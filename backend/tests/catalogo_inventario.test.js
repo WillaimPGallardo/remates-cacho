@@ -1,12 +1,12 @@
 // RF-03, RF-04, RF-05, RF-06, RF-07 y RF-10 · Criterios de HU-02, HU-03, HU-08, HU-04, HU-12, HU-13
-const { reiniciarBD, sql, sesion, pool } = require('./ayuda');
+const { reiniciarBD, sql, sesion, pool, movimiento } = require('./ayuda');
 const { validarCodigo } = require('../src/comun/codigos');
 let g, b;
 beforeAll(async () => {
   await reiniciarBD();
-  g = await sesion('gerente', 'Cambiar2026', 'Gerencia2026');
-  await g.post('/api/v1/usuarios').send({ nombre_completo: 'Usuario Bodega', nombre_usuario: 'bodeguero1', correo: 'bodega@rematescacho.com', rol: 'BODEGUERO', contrasena: 'Bodega2026', confirmacion: 'Bodega2026' });
-  b = await sesion('bodeguero1', 'Bodega2026', 'Bodega2027');
+  g = await sesion('gerente', 'Cambiar2026', 'Gerencia de Remates 2026');
+  await g.post('/api/v1/usuarios').send({ nombre_completo: 'Usuario Bodega', nombre_usuario: 'bodeguero1', correo: 'bodega@rematescacho.com', rol: 'BODEGUERO', contrasena: 'bodega principal norte', confirmacion: 'bodega principal norte' });
+  b = await sesion('bodeguero1', 'bodega principal norte', 'bodega principal sur 27');
 });
 afterAll(() => pool.end());
 
@@ -73,29 +73,29 @@ describe('RF-05 Consulta de productos', () => {
     expect((await b.get('/api/v1/productos?q=FER-0012')).body.total).toBe(1);
     const r = await b.get('/api/v1/productos?q=7701234567897');
     expect(r.body.productos[0].precio_compra).toBeUndefined();
-    expect((await b.get('/api/v1/productos?q=ma')).status).toBe(400);
+    expect((await b.get('/api/v1/productos?q=ma')).body.mensaje).toMatch(/al menos 3 caracteres/);   // nombre: mínimo 3
     expect((await b.get('/api/v1/productos?q=zzzz')).body.mensaje).toBe('No se encontraron productos');
   });
 });
 
 describe('RF-06 y RF-07 Entradas y salidas; RF-10 Kardex', () => {
   test('entrada aumenta el stock y la salida lo disminuye', async () => {
-    const e = await b.post('/api/v1/movimientos').send({ id_producto: idMartillo, tipo: 'ENTRADA', cantidad: '10', motivo: 'Remisión 4471' });
+    const e = await movimiento(b, { id_producto: idMartillo, tipo: 'ENTRADA', cantidad: '10', motivo: 'Remisión 4471' });
     expect(e.status).toBe(201); expect(e.body).toMatchObject({ stock_anterior: 12, stock_nuevo: 22 });
-    const s = await b.post('/api/v1/movimientos').send({ id_producto: idMartillo, tipo: 'SALIDA', cantidad: '20' });
+    const s = await movimiento(b, { id_producto: idMartillo, tipo: 'SALIDA', cantidad: '20', motivo: 'Remisión 9001' });
     expect(s.body).toMatchObject({ stock_anterior: 22, stock_nuevo: 2 });
   });
 
   test('rechaza cantidades inválidas y salidas mayores que la existencia', async () => {
     for (const cantidad of ['0', '-3', '2.5', 'abc', '100000']) {
-      expect((await b.post('/api/v1/movimientos').send({ id_producto: idMartillo, tipo: 'ENTRADA', cantidad })).status).toBe(400);
+      expect((await movimiento(b, { id_producto: idMartillo, tipo: 'ENTRADA', cantidad })).status).toBe(400);
     }
-    const r = await b.post('/api/v1/movimientos').send({ id_producto: idMartillo, tipo: 'SALIDA', cantidad: '3' });
+    const r = await movimiento(b, { id_producto: idMartillo, tipo: 'SALIDA', cantidad: '3', motivo: 'Remisión 9002' });
     expect(r.status).toBe(409); expect(r.body.mensaje).toBe('Existencia insuficiente. Disponible: 2');
   });
 
   test('dos salidas simultáneas por la última existencia: solo una se registra', async () => {
-    const pedir = () => b.post('/api/v1/movimientos').send({ id_producto: idMartillo, tipo: 'SALIDA', cantidad: '2' });
+    const pedir = () => movimiento(b, { id_producto: idMartillo, tipo: 'SALIDA', cantidad: '2', motivo: 'Remisión 9003' });
     const res = await Promise.all([pedir(), pedir()]);
     expect(res.map(x => x.status).sort()).toEqual([201, 409]);
     const [p] = await sql('SELECT stock_actual FROM producto WHERE id_producto = $1', [idMartillo]);

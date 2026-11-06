@@ -28,7 +28,7 @@ describe('RF-01 Inicio de sesión', () => {
     const debil = await ag.post('/api/v1/auth/cambiar-contrasena').send({ actual: 'Cambiar2026', nueva: 'abc', confirmacion: 'abc' });
     expect(debil.status).toBe(400);
     expect(debil.body.campos.nueva).toMatch(/no cumple los requisitos/);
-    const ok = await ag.post('/api/v1/auth/cambiar-contrasena').send({ actual: 'Cambiar2026', nueva: 'Gerencia2026', confirmacion: 'Gerencia2026' });
+    const ok = await ag.post('/api/v1/auth/cambiar-contrasena').send({ actual: 'Cambiar2026', nueva: 'Gerencia de Remates 2026', confirmacion: 'Gerencia de Remates 2026' });
     expect(ok.status).toBe(200);
     expect((await ag.get('/api/v1/usuarios')).status).toBe(200);
   });
@@ -39,7 +39,7 @@ describe('RF-01 Inicio de sesión', () => {
     const r2 = await intento(); expect(r2.body.mensaje).toMatch(/Le queda 1 intento/);
     const r3 = await intento(); expect(r3.status).toBe(423); expect(r3.body.mensaje).toMatch(/Cuenta bloqueada temporalmente/);
     // Con el bloqueo vigente ni siquiera la contraseña correcta permite ingresar
-    const r4 = await request(app).post('/api/v1/auth/login').send({ usuario: 'gerente', contrasena: 'Gerencia2026' });
+    const r4 = await request(app).post('/api/v1/auth/login').send({ usuario: 'gerente', contrasena: 'Gerencia de Remates 2026' });
     expect(r4.status).toBe(423);
     const [u] = await sql(`SELECT intentos_fallidos, bloqueado_hasta > now() + interval '14 minutes' AS quince FROM usuario WHERE nombre_usuario = 'gerente'`);
     expect(u).toEqual({ intentos_fallidos: 3, quince: true });
@@ -47,14 +47,14 @@ describe('RF-01 Inicio de sesión', () => {
 
   test('al vencer el bloqueo puede ingresar y el contador se reinicia', async () => {
     await sql(`UPDATE usuario SET bloqueado_hasta = now() - interval '1 minute' WHERE nombre_usuario = 'gerente'`);
-    const r = await request(app).post('/api/v1/auth/login').send({ usuario: 'gerente', contrasena: 'Gerencia2026' });
+    const r = await request(app).post('/api/v1/auth/login').send({ usuario: 'gerente', contrasena: 'Gerencia de Remates 2026' });
     expect(r.status).toBe(200);
     const [u] = await sql(`SELECT intentos_fallidos, bloqueado_hasta FROM usuario WHERE nombre_usuario = 'gerente'`);
     expect(u).toEqual({ intentos_fallidos: 0, bloqueado_hasta: null });
   });
 
   test('sesión inactiva por más de 30 minutos expira', async () => {
-    const ag = await sesion('gerente', 'Gerencia2026');
+    const ag = await sesion('gerente', 'Gerencia de Remates 2026');
     await sql(`UPDATE sesion SET ultima_actividad = now() - interval '31 minutes'`);
     const r = await ag.get('/api/v1/auth/yo');
     expect(r.status).toBe(401);

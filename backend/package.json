@@ -9,7 +9,10 @@
     "test": "jest --runInBand",
     "lint": "eslint src tests",
     "db:migrar": "node scripts/migrar.js",
-    "produccion": "node scripts/migrar.js && node src/server.js"
+    "produccion": "node scripts/migrar.js && node src/server.js",
+    "db:respaldo": "node scripts/respaldar.js",
+    "medir:bcrypt": "node scripts/medir_bcrypt.js",
+    "auditoria:conciliar": "node scripts/conciliar_auditoria.js"
   },
   "license": "UNLICENSED",
   "private": true,

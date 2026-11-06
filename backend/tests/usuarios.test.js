@@ -1,20 +1,22 @@
 // RF-02 · Criterios de aceptación de HU-01
 const { reiniciarBD, sql, sesion, app, pool, request } = require('./ayuda');
 let g;
-beforeAll(async () => { await reiniciarBD(); g = await sesion('gerente', 'Cambiar2026', 'Gerencia2026'); });
+beforeAll(async () => { await reiniciarBD(); g = await sesion('gerente', 'Cambiar2026', 'Gerencia de Remates 2026'); });
 afterAll(() => pool.end());
 
-const nuevo = { nombre_completo: 'María Fernanda Ruiz', nombre_usuario: 'cajero1', correo: 'caja@rematescacho.com', rol: 'CAJERO', contrasena: 'Caja2026x', confirmacion: 'Caja2026x' };
+const nuevo = { nombre_completo: 'María Fernanda Ruiz', nombre_usuario: 'cajero1', correo: 'caja@rematescacho.com', rol: 'CAJERO', contrasena: 'caja del mostrador uno', confirmacion: 'caja del mostrador uno' };
 
 describe('RF-02 Gestión de usuarios', () => {
-  test('crea la cuenta activa, cifrada y con cambio obligatorio', async () => {
+  test('crea la cuenta activa, con hash bcrypt, cambio obligatorio y vencimiento de 24 h', async () => {
     const r = await g.post('/api/v1/usuarios').send(nuevo);
     expect(r.status).toBe(201);
     expect(r.body).toMatchObject({ nombre_usuario: 'cajero1', rol: 'CAJERO', estado: 'ACTIVO', requiere_cambio_contrasena: true });
     const [u] = await sql(`SELECT contrasena_hash FROM usuario WHERE nombre_usuario = 'cajero1'`);
     expect(u.contrasena_hash).toMatch(/^\$2[aby]\$12\$/);          // nunca en texto plano
+    const [e] = await sql(`SELECT contrasena_temporal_expira BETWEEN now() + interval '23 hours' AND now() + interval '25 hours' AS h24 FROM usuario WHERE nombre_usuario = 'cajero1'`);
+    expect(e.h24).toBe(true);   // la contraseña inicial vence a las 24 h (PG-04)
     const [a] = await sql(`SELECT valor_nuevo FROM registro_auditoria WHERE tipo_operacion = 'GESTION_USUARIO'`);
-    expect(a.valor_nuevo).not.toMatch(/Caja2026x/);
+    expect(a.valor_nuevo).not.toMatch(/caja del mostrador uno/);
   });
 
   test('rechaza usuario y correo duplicados (sin distinguir mayúsculas)', async () => {
@@ -39,18 +41,18 @@ describe('RF-02 Gestión de usuarios', () => {
   test('desactiva, el usuario no puede ingresar, y al reactivar sí', async () => {
     const [c] = await sql(`SELECT id_usuario FROM usuario WHERE nombre_usuario = 'cajero1'`);
     expect((await g.patch(`/api/v1/usuarios/${c.id_usuario}/estado`).send({ estado: 'INACTIVO' })).body.estado).toBe('INACTIVO');
-    const r = await request(app).post('/api/v1/auth/login').send({ usuario: 'cajero1', contrasena: 'Caja2026x' });
+    const r = await request(app).post('/api/v1/auth/login').send({ usuario: 'cajero1', contrasena: 'caja del mostrador uno' });
     expect(r.status).toBe(403);
     expect(r.body.mensaje).toBe('Cuenta inactiva. Comuníquese con la Gerencia');
     await g.patch(`/api/v1/usuarios/${c.id_usuario}/estado`).send({ estado: 'ACTIVO' });
-    expect((await request(app).post('/api/v1/auth/login').send({ usuario: 'cajero1', contrasena: 'Caja2026x' })).status).toBe(200);
+    expect((await request(app).post('/api/v1/auth/login').send({ usuario: 'cajero1', contrasena: 'caja del mostrador uno' })).status).toBe(200);
   });
 
-  test('restablecer genera una temporal de 24 h que permite ingresar y exige el cambio', async () => {
+  test('restablecer genera una temporal de 12 caracteres y 24 h que permite ingresar y exige el cambio', async () => {
     const [c] = await sql(`SELECT id_usuario FROM usuario WHERE nombre_usuario = 'cajero1'`);
     const r = await g.post(`/api/v1/usuarios/${c.id_usuario}/restablecer`);
     expect(r.status).toBe(200);
-    expect(r.body.contrasenaTemporal).toMatch(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{10}$/);
+    expect(r.body.contrasenaTemporal).toMatch(/^[A-HJ-NP-Za-km-z2-9]{12}$/);   // PG-04: 12 caracteres sin ambiguos
     const l = await request(app).post('/api/v1/auth/login').send({ usuario: 'cajero1', contrasena: r.body.contrasenaTemporal });
     expect(l.body.usuario.requiereCambio).toBe(true);
   });
@@ -58,7 +60,7 @@ describe('RF-02 Gestión de usuarios', () => {
   test('un cajero no puede gestionar usuarios y el intento queda auditado', async () => {
     const [c] = await sql(`SELECT id_usuario FROM usuario WHERE nombre_usuario = 'cajero1'`);
     const t = await g.post(`/api/v1/usuarios/${c.id_usuario}/restablecer`);
-    const cajero = await sesion('cajero1', t.body.contrasenaTemporal, 'Caja2026y');
+    const cajero = await sesion('cajero1', t.body.contrasenaTemporal, 'caja del mostrador dos');
     const r = await cajero.get('/api/v1/usuarios');
     expect(r.status).toBe(403);
     const [a] = await sql(`SELECT resultado FROM registro_auditoria WHERE tipo_operacion = 'ACCESO_DENEGADO' AND id_usuario = $1`, [c.id_usuario]);

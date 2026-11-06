@@ -62,15 +62,35 @@ Abrir http://localhost:5173 e ingresar con **Gerente / William123**
 
 ```bash
 createdb remates_test
-cd backend && npm test          # 25 pruebas de aceptación de RF-01 a RF-07 y RF-10
+cd backend && npm test          # 42 pruebas: aceptación de RF-01 a RF-07 y RF-10 y ajustes de la revisión del análisis
 psql -d remates_cacho -f ../db/pruebas/pruebas_basicas.sql   # 15 pruebas de integridad de la BD
 npm run lint
+npm run medir:bcrypt            # tiempo de verificación de bcrypt (criterio PG-03: 100 a 400 ms)
+npm run db:respaldo             # copia manual de la base con pg_dump (antes de cada migración)
+npm run auditoria:conciliar     # inserta los eventos de auditoría guardados en archivo cuando la BD no respondía
 ```
 
 ## Estado (primera versión funcional)
 
 Implementado: RF-01, RF-02, RF-03, RF-04 (validación, generación e impresión de etiquetas), RF-05, RF-06, RF-07, RF-10 y el registro transversal de auditoría (RF-16).
 Pendiente: RF-08 (ajustes con autorización), RF-09, RF-11 (escaneo con cámara), ventas y comprobantes (RF-12 a RF-15), consulta de auditoría y reportes (RF-16, RF-17).
+
+## Ajustes derivados de la revisión del análisis (migración 004)
+
+- **Contraseñas (PG-03, PG-04):** de 12 a 64 caracteres, se admiten frases con espacios, sin reglas de mayúsculas o
+  números; se rechazan las contraseñas comunes o filtradas (`backend/src/comun/datos`), las secuencias simples y las que
+  contienen el nombre de usuario. La temporal tiene 12 caracteres y la inicial que define la Gerencia vence a las 24 h.
+  Las contraseñas existentes siguen funcionando; la política se aplica al crear o cambiar una contraseña.
+- **Sesión restringida (RF-01):** con contraseña temporal la sesión solo permite cambiarla; después del cambio se crea
+  la sesión completa del rol. El estado de la cuenta (inactiva) solo se informa tras una contraseña correcta.
+- **Clave de operación (RF-06, RF-07, PG-15):** `POST /api/v1/movimientos` exige el encabezado `Idempotency-Key`
+  (UUID). Un reintento con la misma clave devuelve el movimiento ya registrado; `GET /api/v1/movimientos/clave/{clave}`
+  permite verificar el resultado si se perdió la conexión. La salida por despacho exige el destino o la remisión.
+- **Catálogo (RF-03, RF-05):** el SKU no se puede modificar; inactivar un producto con existencias pide confirmación;
+  el aviso de edición simultánea indica quién y a qué hora modificó la ficha; el mínimo de 3 caracteres aplica solo a
+  la búsqueda por nombre y se informa el total cuando hay más de 20 coincidencias.
+- **Auditoría (RF-16):** `id_correlacion` agrupa los eventos de una operación; disparadores impiden modificar o borrar
+  la auditoría y el kardex; si la base no responde, los eventos se guardan en `backend/logs/` y se concilian después.
 
 ## Publicación en internet (Render + Neon)
 

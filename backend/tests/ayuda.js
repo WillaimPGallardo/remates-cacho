@@ -31,4 +31,8 @@ async function sesion(usuario, contrasena, nueva) {
   return agente;
 }
 
-module.exports = { reiniciarBD, sql, sesion, app, pool, request };
+// Registra un movimiento con su clave de operación (Idempotency-Key, PG-15)
+const movimiento = (agente, datos, clave = require('crypto').randomUUID()) =>
+  agente.post('/api/v1/movimientos').set('Idempotency-Key', clave).send(datos);
+
+module.exports = { reiniciarBD, sql, sesion, movimiento, app, pool, request };

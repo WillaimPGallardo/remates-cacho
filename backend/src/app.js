@@ -4,11 +4,13 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const { pool } = require('./config/db');
 const { manejadorErrores, noEncontrado } = require('./comun/errores');
+const { correlacion } = require('./comun/auditoria');
 
 const app = express();
 app.set('trust proxy', 1);          // detrás de Nginx: IP real del cliente
 app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
+app.use('/api', correlacion);       // identificador de correlación y clave de operación (RF-16, RNF-05)
 
 app.get('/api/v1/salud', async (_req, res, next) => {   // verificación de conexión (RNF-05)
   try { await pool.query('SELECT 1'); res.json({ estado: 'ok', hora: new Date() }); } catch (e) { next(e); }

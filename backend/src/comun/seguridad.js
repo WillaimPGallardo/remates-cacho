@@ -2,7 +2,7 @@
 const crypto = require('crypto');
 const { pool } = require('../config/db');
 const P = require('../config/parametros');
-const { noAutenticado, prohibido } = require('./errores');
+const { AppError, noAutenticado, prohibido } = require('./errores');
 const { registrarAparte } = require('./auditoria');
 
 const COOKIE = 'rc_sesion';
@@ -14,7 +14,7 @@ async function autenticar(req, _res, next) {
     if (!token) throw noAutenticado('Debe iniciar sesión');
     const { rows } = await pool.query(
       `SELECT s.id_sesion, s.fecha_inicio, s.ultima_actividad, u.id_usuario, u.nombre_completo, u.nombre_usuario,
-              u.estado, u.requiere_cambio_contrasena, r.nombre AS rol,
+              u.estado, u.requiere_cambio_contrasena, s.restringida, r.nombre AS rol,
               ARRAY(SELECT p.codigo FROM rol_permiso rp JOIN permiso p USING (id_permiso) WHERE rp.id_rol = u.id_rol) AS permisos
        FROM sesion s JOIN usuario u USING (id_usuario) JOIN rol r USING (id_rol)
        WHERE s.token_hash = $1 AND s.activa`, [hashToken(token)]);
@@ -28,9 +28,9 @@ async function autenticar(req, _res, next) {
     }
     await pool.query('UPDATE sesion SET ultima_actividad = now() WHERE id_sesion = $1', [s.id_sesion]);
     req.usuario = s;
-    // Con contraseña temporal solo se permite cambiarla o cerrar sesión
-    if (s.requiere_cambio_contrasena && !['/api/v1/auth/cambiar-contrasena', '/api/v1/auth/logout', '/api/v1/auth/yo'].includes(req.originalUrl.split('?')[0])) {
-      throw prohibido('Debe cambiar su contraseña antes de continuar');
+    // Sesión restringida (contraseña temporal): solo se permite cambiarla, consultar el usuario o cerrar sesión
+    if ((s.restringida || s.requiere_cambio_contrasena) && !['/api/v1/auth/cambiar-contrasena', '/api/v1/auth/logout', '/api/v1/auth/yo'].includes(req.originalUrl.split('?')[0])) {
+      throw new AppError(403, 'CAMBIO_CONTRASENA_REQUERIDO', 'Debe cambiar su contraseña antes de continuar');
     }
     next();
   } catch (e) { next(e); }
@@ -40,7 +40,8 @@ async function autenticar(req, _res, next) {
 const permitir = (...permisos) => async (req, _res, next) => {
   if (permisos.some(p => req.usuario.permisos.includes(p))) return next();
   await registrarAparte({ idUsuario: req.usuario.id_usuario, modulo: 'Seguridad', tipo: 'ACCESO_DENEGADO',
-    entidad: 'ruta', idEntidad: `${req.method} ${req.originalUrl}`.slice(0, 50), ip: req.ip, dispositivo: req.get('user-agent'), resultado: 'DENEGADO' });
+    entidad: 'ruta', idEntidad: `${req.method} ${req.originalUrl}`.slice(0, 50), ip: req.ip, dispositivo: req.get('user-agent'), resultado: 'DENEGADO',
+    nuevo: { permiso_requerido: permisos }, correlacion: req.correlacion });
   next(prohibido());
 };
 

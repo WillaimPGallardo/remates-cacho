@@ -15,8 +15,8 @@ const idRol = (db, nombre) => db.query('SELECT id_rol FROM rol WHERE nombre = $1
 const existeUsuario = (db, nombre, excepto = 0) => db.query('SELECT 1 FROM usuario WHERE lower(nombre_usuario) = lower($1) AND id_usuario <> $2', [nombre, excepto]).then(r => r.rowCount > 0);
 const existeCorreo = (db, correo, excepto = 0) => db.query('SELECT 1 FROM usuario WHERE lower(correo) = lower($1) AND id_usuario <> $2', [correo, excepto]).then(r => r.rowCount > 0);
 const crear = (db, d) => db.query(
-  `INSERT INTO usuario (id_rol, nombre_completo, nombre_usuario, correo, contrasena_hash, requiere_cambio_contrasena)
-   VALUES ($1,$2,$3,$4,$5, TRUE) RETURNING id_usuario`, [d.id_rol, d.nombre_completo, d.nombre_usuario, d.correo, d.hash]).then(r => r.rows[0].id_usuario);
+  `INSERT INTO usuario (id_rol, nombre_completo, nombre_usuario, correo, contrasena_hash, requiere_cambio_contrasena, contrasena_temporal_expira)
+   VALUES ($1,$2,$3,$4,$5, TRUE, $6) RETURNING id_usuario`, [d.id_rol, d.nombre_completo, d.nombre_usuario, d.correo, d.hash, d.expira]).then(r => r.rows[0].id_usuario);
 const actualizar = (db, id, d) => db.query(
   'UPDATE usuario SET nombre_completo = $2, correo = $3, id_rol = $4, fecha_actualizacion = now() WHERE id_usuario = $1', [id, d.nombre_completo, d.correo, d.id_rol]);
 const cambiarEstado = (db, id, estado) => db.query(

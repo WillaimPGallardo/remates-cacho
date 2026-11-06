@@ -5,12 +5,15 @@ const CAMPOS = `p.id_producto, p.sku, p.nombre, p.referencia, p.id_categoria, c.
 const FROM = `FROM producto p JOIN categoria c USING (id_categoria) LEFT JOIN ubicacion u USING (id_ubicacion)
   LEFT JOIN codigo_barras cb ON cb.id_producto = p.id_producto`;
 
-function buscar(db, { q, id_categoria, estado, bajo_stock }, soloActivos, limite, desplazamiento) {
+function buscar(db, { q, id_categoria, estado, bajo_stock }, soloActivos, limite, desplazamiento, soloExacta = false) {
   const cond = []; const p = [];
   if (q) {
     p.push(q.trim());
-    p.push(`%${q.trim().toLowerCase()}%`);
-    cond.push(`(upper(p.sku) = upper($${p.length - 1}) OR cb.valor = $${p.length - 1} OR lower(p.nombre) LIKE $${p.length})`);
+    if (soloExacta) cond.push(`(upper(p.sku) = upper($${p.length}) OR cb.valor = $${p.length})`);
+    else {
+      p.push(`%${q.trim().toLowerCase()}%`);
+      cond.push(`(upper(p.sku) = upper($${p.length - 1}) OR cb.valor = $${p.length - 1} OR lower(p.nombre) LIKE $${p.length})`);
+    }
   }
   if (id_categoria) { p.push(id_categoria); cond.push(`p.id_categoria = $${p.length}`); }
   if (soloActivos) cond.push(`p.estado = 'ACTIVO'`);
@@ -23,6 +26,13 @@ function buscar(db, { q, id_categoria, estado, bajo_stock }, soloActivos, limite
     db.query(`SELECT count(*)::int AS total ${FROM} ${where}`, p),
   ]).then(([a, b]) => ({ productos: a.rows, total: b.rows[0].total }));
 }
+
+// Último usuario que modificó la ficha (para el aviso de edición simultánea)
+const ultimaModificacion = (db, id) => db.query(
+  `SELECT u.nombre_usuario AS usuario, a.fecha_hora FROM registro_auditoria a LEFT JOIN usuario u USING (id_usuario)
+   WHERE a.entidad_afectada = 'producto' AND a.id_entidad_afectada = $1 AND a.resultado = 'EXITOSO'
+     AND a.tipo_operacion IN ('ACTUALIZACION_PRODUCTO', 'CAMBIO_PRECIO')
+   ORDER BY a.id_registro DESC LIMIT 1`, [String(id)]).then(r => r.rows[0]);
 
 const obtener = (db, id, bloquear = false) => db.query(`SELECT ${CAMPOS} ${FROM} WHERE p.id_producto = $1 ${bloquear ? 'FOR UPDATE OF p' : ''}`, [id]).then(r => r.rows[0]);
 const existeSku = (db, sku, excepto = 0) => db.query('SELECT 1 FROM producto WHERE sku = $1 AND id_producto <> $2', [sku, excepto]).then(r => r.rowCount > 0);
@@ -44,4 +54,4 @@ const guardarCodigo = (db, id, valor, tipo) => db.query(
 const categorias = db => db.query('SELECT id_categoria, nombre FROM categoria ORDER BY nombre').then(r => r.rows);
 const ubicaciones = db => db.query(`SELECT id_ubicacion, zona || ' · ' || estante || coalesce(' · ' || nivel, '') AS nombre FROM ubicacion ORDER BY zona, estante, nivel`).then(r => r.rows);
 
-module.exports = { buscar, obtener, existeSku, duenoCodigo, existeCategoria, existeUbicacion, crear, actualizar, siguienteInterno, guardarCodigo, categorias, ubicaciones };
+module.exports = { buscar, ultimaModificacion, obtener, existeSku, duenoCodigo, existeCategoria, existeUbicacion, crear, actualizar, siguienteInterno, guardarCodigo, categorias, ubicaciones };
