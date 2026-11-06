@@ -6,7 +6,7 @@ export const useSesion = () => useContext(Ctx);
 
 export function ProveedorSesion({ children }) {
   const [usuario, setUsuario] = useState(undefined);   // undefined = cargando, null = sin sesión
-  const refrescar = () => api('/auth/yo').then(r => setUsuario(r.usuario)).catch(() => setUsuario(null));
+  const refrescar = () => api('/auth/sesion').then(r => setUsuario(r.usuario)).catch(() => setUsuario(null));
   useEffect(() => {
     refrescar();
     const expirar = () => setUsuario(null);

@@ -1,10 +1,21 @@
 // Componentes de interfaz reutilizables
+import { cloneElement, isValidElement, useId } from 'react';
+
+// Campo con etiqueta asociada al control (label for/id) y mensaje vinculado con aria-describedby (accesibilidad)
 export function Campo({ etiqueta, error, ayuda, children, obligatorio }) {
+  const id = useId();
+  const idMsg = id + '-msg';
+  const asociable = isValidElement(children) && [Entrada, Selector, 'input', 'select', 'textarea'].includes(children.type);
+  const control = asociable ? cloneElement(children, {
+    id: children.props.id || id,
+    'aria-invalid': error ? true : undefined,
+    'aria-describedby': error || ayuda ? idMsg : undefined,
+  }) : children;
   return (
     <div className="f">
-      <label>{etiqueta}{obligatorio && ' *'}</label>
-      {children}
-      {error ? <div className="msg-e">{error}</div> : ayuda ? <div className="msg-h">{ayuda}</div> : null}
+      <label htmlFor={asociable ? control.props.id : undefined}>{etiqueta}{obligatorio && ' *'}</label>
+      {control}
+      {error ? <div className="msg-e" id={idMsg}>{error}</div> : ayuda ? <div className="msg-h" id={idMsg}>{ayuda}</div> : null}
     </div>
   );
 }

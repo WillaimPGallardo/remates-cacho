@@ -17,7 +17,7 @@ export function BuscadorProducto({ valor, onElegir, error }) {
   if (valor) return (<div className="elegido"><span><b>{valor.sku}</b> · {valor.nombre}</span><button type="button" className="lnk" onClick={() => onElegir(null)}>Cambiar</button></div>);
   return (
     <div className="buscador">
-      <Entrada placeholder="Nombre, SKU o código de barras" value={q} onChange={e => setQ(e.target.value)} error={error} autoFocus />
+      <Entrada aria-label="Buscar producto por nombre, SKU o código de barras" placeholder="Nombre, SKU o código de barras" value={q} onChange={e => setQ(e.target.value)} error={error} autoFocus />
       {res.length > 0 && <div className="sugerencias">{res.map(p => (
         <button type="button" key={p.id_producto} onClick={() => { onElegir(p); setQ(''); }}><b>{p.sku}</b> · {p.nombre} <span className="mut">· existencia {p.stock_actual} · {p.ubicacion || 'sin ubicación'}</span></button>))}</div>}
       {aviso && q.trim() && <div className="msg-h">{aviso}</div>}
@@ -38,7 +38,7 @@ export default function Movimiento() {
 
   function exito(r) {
     setOk(`${d.tipo === 'ENTRADA' ? 'Entrada' : 'Salida'} registrada${r.repetido ? ' (ya estaba registrada; no se duplicó)' : ''}. ${r.sku}: stock ${r.stock_anterior} → ${r.stock_nuevo}`);
-    setProd({ ...prod, stock_actual: r.stock_nuevo }); setD({ ...d, cantidad: '', motivo: '' }); setErr({ campos: {}, mensaje: '' });
+    setProd({ ...prod, stock_actual: r.stock_nuevo }); setD(x => ({ ...x, cantidad: '', motivo: '' })); setErr({ campos: {}, mensaje: '' });
     setClave(nuevaClave());
   }
 
@@ -72,16 +72,16 @@ export default function Movimiento() {
           <Campo etiqueta="Producto" obligatorio error={c.id_producto}><BuscadorProducto valor={prod} onElegir={setProd} error={c.id_producto} /></Campo>
           <div className="f"><label>Tipo de movimiento *</label>
             <div className="seg">{[['ENTRADA', 'Entrada · Recepción'], ['SALIDA', 'Salida · Despacho']].map(([v, t]) =>
-              <button type="button" key={v} className={d.tipo === v ? 'on' : ''} onClick={() => setD({ ...d, tipo: v })}>{t}</button>)}</div>
+              <button type="button" key={v} className={d.tipo === v ? 'on' : ''} onClick={() => setD(x => ({ ...x, tipo: v }))}>{t}</button>)}</div>
             <div className="msg-h">Las salidas por venta y las entradas iniciales las genera el sistema.</div></div>
           <div className="row">
-            <Campo etiqueta="Cantidad" obligatorio error={c.cantidad} ayuda="Entero de 1 a 99 999"><Entrada inputMode="numeric" value={d.cantidad} onChange={e => setD({ ...d, cantidad: e.target.value })} error={c.cantidad} /></Campo>
+            <Campo etiqueta="Cantidad" obligatorio error={c.cantidad} ayuda="Entero de 1 a 99 999"><Entrada inputMode="numeric" value={d.cantidad} onChange={e => { const v = e.target.value; setD(x => ({ ...x, cantidad: v })); }} error={c.cantidad} /></Campo>
             <Campo etiqueta="Stock resultante" error={resultante < 0 ? `Existencia insuficiente. Disponible: ${prod.stock_actual}` : ''}>
               <Entrada className={'in ro' + (resultante < 0 ? ' err' : '')} readOnly value={resultante == null ? '' : `${prod.stock_actual} ${d.tipo === 'ENTRADA' ? '+' : '−'} ${n} = ${resultante}`} />
             </Campo>
           </div>
           <Campo etiqueta={d.tipo === 'ENTRADA' ? 'Observación (proveedor o remisión)' : 'Destino o número de remisión'} obligatorio={d.tipo === 'SALIDA'} error={c.motivo}
-            ayuda={d.tipo === 'SALIDA' ? 'Las ventas de mostrador no se registran aquí: las descuenta el sistema al vender' : ''}><Entrada value={d.motivo} onChange={e => setD({ ...d, motivo: e.target.value })} /></Campo>
+            ayuda={d.tipo === 'SALIDA' ? 'Las ventas de mostrador no se registran aquí: las descuenta el sistema al vender' : ''}><Entrada value={d.motivo} onChange={e => { const v = e.target.value; setD(x => ({ ...x, motivo: v })); }} /></Campo>
           <Alerta>{err.mensaje !== 'Revise los datos ingresados' ? err.mensaje : ''}</Alerta>
           <Alerta tipo="s">{ok}</Alerta>
           {verificando && <Alerta tipo="s">Verificando…</Alerta>}

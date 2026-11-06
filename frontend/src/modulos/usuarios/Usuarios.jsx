@@ -17,7 +17,7 @@ function Estado({ u }) {
 function Formulario({ editar, onListo, onCancelar }) {
   const [d, setD] = useState(editar ? { ...editar } : { nombre_completo: '', nombre_usuario: '', correo: '', rol: 'CAJERO', contrasena: '', confirmacion: '' });
   const [err, setErr] = useState({ campos: {}, mensaje: '' });
-  const set = k => e => setD({ ...d, [k]: e.target.value });
+  const set = k => e => { const v = e.target.value; setD(x => ({ ...x, [k]: v })); };
   async function guardar(e) {
     e.preventDefault();
     try {

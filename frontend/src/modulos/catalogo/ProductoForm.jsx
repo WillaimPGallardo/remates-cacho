@@ -23,7 +23,7 @@ export default function ProductoForm() {
     api('/productos/listas').then(setListas);
     if (editar) cargar();
   }, [id]);
-  const set = k => e => setD({ ...d, [k]: e.target.value });
+  const set = k => e => { const v = e.target.value; setD(x => ({ ...x, [k]: v })); };
 
   async function guardar(e, extra = {}) {
     e?.preventDefault();
@@ -51,7 +51,7 @@ export default function ProductoForm() {
           <b>Datos del producto</b>
           <div className="row">
             <Campo etiqueta="SKU" obligatorio error={c.sku} ayuda={editar ? 'El SKU no se modifica después del registro' : '3 a 20: mayúsculas, números o guion'}>
-              <Entrada className={editar ? 'in ro' : undefined} readOnly={editar} value={d.sku} onChange={e => setD({ ...d, sku: e.target.value.toUpperCase() })} error={c.sku} /></Campo>
+              <Entrada className={editar ? 'in ro' : undefined} readOnly={editar} value={d.sku} onChange={e => { const v = e.target.value.toUpperCase(); setD(x => ({ ...x, sku: v })); }} error={c.sku} /></Campo>
             <Campo etiqueta="Nombre" obligatorio error={c.nombre}><Entrada value={d.nombre} onChange={set('nombre')} error={c.nombre} /></Campo>
             <Campo etiqueta="Referencia" error={c.referencia}><Entrada value={d.referencia || ''} onChange={set('referencia')} /></Campo>
           </div>

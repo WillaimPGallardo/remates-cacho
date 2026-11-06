@@ -32,11 +32,11 @@ export default function Login() {
         <div className="logo"><b>REMATES CACHO</b><div className="mut">Control de inventario y ventas</div></div>
         <Campo etiqueta="Usuario o correo" obligatorio error={err.campos.usuario?.trim()}>
           <Entrada error={err.campos.usuario} value={d.usuario} autoComplete="username" placeholder="usuario o correo"
-            onChange={e => setD({ ...d, usuario: e.target.value })} />
+            onChange={e => { const v = e.target.value; setD(x => ({ ...x, usuario: v })); }} />
         </Campo>
         <Campo etiqueta="Contraseña" obligatorio error={err.campos.contrasena?.trim()}>
           <Entrada error={err.campos.contrasena} type="password" value={d.contrasena} autoComplete="current-password" placeholder="contraseña"
-            onChange={e => setD({ ...d, contrasena: e.target.value })} />
+            onChange={e => { const v = e.target.value; setD(x => ({ ...x, contrasena: v })); }} />
         </Campo>
         <button className="btn p full" disabled={enviando}>{enviando ? 'Verificando…' : 'Iniciar sesión'}</button>
         <Alerta tipo={err.tipo}>{err.mensaje}</Alerta>

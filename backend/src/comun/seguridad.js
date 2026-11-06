@@ -29,7 +29,7 @@ async function autenticar(req, _res, next) {
     await pool.query('UPDATE sesion SET ultima_actividad = now() WHERE id_sesion = $1', [s.id_sesion]);
     req.usuario = s;
     // Sesión restringida (contraseña temporal): solo se permite cambiarla, consultar el usuario o cerrar sesión
-    if ((s.restringida || s.requiere_cambio_contrasena) && !['/api/v1/auth/cambiar-contrasena', '/api/v1/auth/logout', '/api/v1/auth/yo'].includes(req.originalUrl.split('?')[0])) {
+    if ((s.restringida || s.requiere_cambio_contrasena) && !['/api/v1/auth/cambiar-contrasena', '/api/v1/auth/logout', '/api/v1/auth/yo', '/api/v1/auth/sesion'].includes(req.originalUrl.split('?')[0])) {
       throw new AppError(403, 'CAMBIO_CONTRASENA_REQUERIDO', 'Debe cambiar su contraseña antes de continuar');
     }
     next();

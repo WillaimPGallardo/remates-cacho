@@ -37,14 +37,14 @@ export default function CambioContrasena() {
         <b style={{ fontSize: 19 }}>Cambio de contraseña obligatorio</b>
         <p className="mut" style={{ margin: '4px 0 14px' }}>Hola, {usuario.nombre}. Defina una contraseña nueva para continuar.</p>
         <Campo etiqueta="Contraseña temporal o actual" obligatorio error={err.campos.actual}>
-          <Entrada type="password" value={d.actual} onChange={e => setD({ ...d, actual: e.target.value })} error={err.campos.actual} />
+          <Entrada type="password" value={d.actual} onChange={e => { const v = e.target.value; setD(x => ({ ...x, actual: v })); }} error={err.campos.actual} />
         </Campo>
         <Campo etiqueta="Nueva contraseña" obligatorio error={err.campos.nueva}>
-          <Entrada type="password" value={d.nueva} onChange={e => setD({ ...d, nueva: e.target.value })} error={err.campos.nueva} />
+          <Entrada type="password" value={d.nueva} onChange={e => { const v = e.target.value; setD(x => ({ ...x, nueva: v })); }} error={err.campos.nueva} />
         </Campo>
         <ListaRequisitos clave={d.nueva} usuario={usuario.usuario} />
         <Campo etiqueta="Confirmar nueva contraseña" obligatorio error={d.confirmacion && d.confirmacion !== d.nueva ? 'Las contraseñas no coinciden' : err.campos.confirmacion}>
-          <Entrada type="password" value={d.confirmacion} onChange={e => setD({ ...d, confirmacion: e.target.value })} error={d.confirmacion && d.confirmacion !== d.nueva} />
+          <Entrada type="password" value={d.confirmacion} onChange={e => { const v = e.target.value; setD(x => ({ ...x, confirmacion: v })); }} error={d.confirmacion && d.confirmacion !== d.nueva} />
         </Campo>
         <button className={'btn full ' + (cumple ? 'p' : 'dis')} disabled={!cumple}>Guardar contraseña</button>
         <button type="button" className="btn full" onClick={salir}>Cancelar y salir</button>

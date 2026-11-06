@@ -17,7 +17,7 @@ export default function Productos() {
   useEffect(() => { api('/productos/listas').then(setListas).catch(() => {}); }, []);
   useEffect(() => {
     const t = setTimeout(() => {
-      if (f.q && f.q.trim().length < 3 && !/^\d+$/.test(f.q.trim())) return setError('Escriba al menos 3 caracteres');
+      // Con menos de 3 caracteres el servidor busca solo el SKU o el código exacto e informa cómo buscar por nombre
       api('/productos?' + new URLSearchParams(f)).then(x => { setR(x); setError(''); }).catch(e => setError(e.message));
     }, 250);
     return () => clearTimeout(t);
