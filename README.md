@@ -62,13 +62,15 @@ Abrir http://localhost:5173 e ingresar con **Gerente / William123**
 
 ```bash
 createdb remates_test
-cd backend && npm test          # 42 pruebas: aceptación de RF-01 a RF-07 y RF-10 y ajustes de la revisión del análisis
+cd backend && npm test          # 92 pruebas: 32 unitarias, 18 de integración, aceptación de RF-01 a RF-07 y RF-10 y ajustes de la revisión
 psql -d remates_cacho -f ../db/pruebas/pruebas_basicas.sql   # 15 pruebas de integridad de la BD
 npm run lint
 npm run medir:bcrypt            # tiempo de verificación de bcrypt (criterio PG-03: 100 a 400 ms)
 npm run db:respaldo             # copia manual de la base con pg_dump (antes de cada migración)
 npm run auditoria:conciliar     # inserta los eventos de auditoría guardados en archivo cuando la BD no respondía
 ```
+
+Pruebas funcionales en el navegador (24 casos acción–respuesta con capturas): ver `pruebas/funcionales/README.md`.
 
 ## Estado (primera versión funcional)
 

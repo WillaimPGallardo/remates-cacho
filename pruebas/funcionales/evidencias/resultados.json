@@ -1,0 +1,242 @@
+[
+  {
+    "id": "PF-01-3",
+    "funcionalidad": "PF-01 Iniciar sesión",
+    "tipo": "Datos inválidos",
+    "nombre": "Ingreso con campos vacíos",
+    "accion": "Dejar usuario y contraseña vacíos y pulsar «Iniciar sesión».",
+    "esperada": "El sistema no consulta la base de datos, marca ambos campos y muestra «Debe completar todos los campos».",
+    "obtenida": "Debe completar todos los campos",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-01-2",
+    "funcionalidad": "PF-01 Iniciar sesión",
+    "tipo": "Error",
+    "nombre": "Ingreso con contraseña incorrecta",
+    "accion": "Escribir el usuario «gerente» y una contraseña equivocada y pulsar «Iniciar sesión».",
+    "esperada": "Mensaje genérico «Usuario o contraseña incorrectos. Le quedan 2 intentos»; no se crea sesión.",
+    "obtenida": "Usuario o contraseña incorrectos. Le quedan 2 intentos",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-01-1",
+    "funcionalidad": "PF-01 Iniciar sesión",
+    "tipo": "Exitosa",
+    "nombre": "Ingreso con credenciales válidas",
+    "accion": "Escribir «gerente» y su contraseña y pulsar «Iniciar sesión».",
+    "esperada": "Se abre el panel de inicio de la Gerencia con el menú de su rol.",
+    "obtenida": "Panel de inicio",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-02-1",
+    "funcionalidad": "PF-02 Registrar usuario",
+    "tipo": "Exitosa",
+    "nombre": "Registro de un usuario nuevo",
+    "accion": "En Usuarios pulsar «+ Nuevo usuario», diligenciar Ana Gómez / bodeguero2 / ana@rematescacho.com, rol Bodeguero, contraseña inicial «bodega del sector sur» y su confirmación; pulsar «Guardar».",
+    "esperada": "Mensaje «Usuario creado. Deberá cambiar la contraseña inicial en su primer ingreso» y el usuario aparece Activo en el listado.",
+    "obtenida": "Usuario creado. Deberá cambiar la contraseña inicial en su primer ingreso",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-02-2",
+    "funcionalidad": "PF-02 Registrar usuario",
+    "tipo": "Error",
+    "nombre": "Registro con nombre de usuario ya existente",
+    "accion": "Repetir el registro con el nombre de usuario «bodeguero2» y otro correo.",
+    "esperada": "Mensaje en el campo «El nombre de usuario ya se encuentra registrado»; no se crea la cuenta.",
+    "obtenida": "El nombre de usuario ya se encuentra registrado",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-02-3",
+    "funcionalidad": "PF-02 Registrar usuario",
+    "tipo": "Datos inválidos",
+    "nombre": "Registro con correo inválido y contraseña común",
+    "accion": "Diligenciar el correo «ana.rematescacho.com» y la contraseña «password1234» con confirmación distinta; pulsar «Guardar».",
+    "esperada": "Mensajes por campo: «Correo no válido…», requisitos de contraseña incumplidos y «Las contraseñas no coinciden».",
+    "obtenida": "Correo no válido (ejemplo: nombre@dominio.com)",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-03-3",
+    "funcionalidad": "PF-03 Cambio de contraseña obligatorio",
+    "tipo": "Datos inválidos",
+    "nombre": "Nueva contraseña que no cumple la política",
+    "accion": "En el primer ingreso de bodeguero2 escribir como nueva contraseña «Bodega2026» (10 caracteres).",
+    "esperada": "La lista de requisitos marca «De 12 a 64 caracteres» en rojo y el botón «Guardar contraseña» permanece deshabilitado.",
+    "obtenida": "✗ De 12 a 64 caracteres (puede ser una frase con espacios)",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-03-2",
+    "funcionalidad": "PF-03 Cambio de contraseña obligatorio",
+    "tipo": "Error",
+    "nombre": "Contraseña temporal incorrecta",
+    "accion": "Escribir una contraseña temporal equivocada y una nueva válida «mi bodega del sector sur»; pulsar «Guardar contraseña».",
+    "esperada": "Mensaje «La contraseña actual no es correcta»; la contraseña no cambia y la sesión sigue restringida.",
+    "obtenida": "La contraseña actual no es correcta",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-03-1",
+    "funcionalidad": "PF-03 Cambio de contraseña obligatorio",
+    "tipo": "Exitosa",
+    "nombre": "Cambio de contraseña obligatorio",
+    "accion": "Escribir la contraseña temporal correcta y la nueva «mi bodega del sector sur» con su confirmación; pulsar «Guardar contraseña».",
+    "esperada": "Se guarda la contraseña, se crea la sesión completa del rol y se abre la interfaz del Bodeguero.",
+    "obtenida": "Bienvenido, Ana Gómez · datos en tiempo real · actualizado 03:37 p. m.",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-04-1",
+    "funcionalidad": "PF-04 Registrar producto",
+    "tipo": "Exitosa",
+    "nombre": "Registro de producto sin código comercial",
+    "accion": "En Catálogo pulsar «+ Nuevo producto», diligenciar FER-0060 «Serrucho de 20 pulgadas», Ferretería, compra 35, venta 52, mínimo 3, existencia inicial 20, sin código; pulsar «Guardar».",
+    "esperada": "Se registra el producto, se genera un código interno RC + 8 dígitos y se abre la pantalla de etiquetas.",
+    "obtenida": "Producto registrado. Puede imprimir sus etiquetas. · RC00000014 · INTERNO",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-04-2",
+    "funcionalidad": "PF-04 Registrar producto",
+    "tipo": "Error",
+    "nombre": "Registro con SKU duplicado",
+    "accion": "Registrar otro producto con el SKU «FER-0012», que ya existe.",
+    "esperada": "Mensaje en el campo SKU «El SKU ya existe»; no se guarda el producto.",
+    "obtenida": "El SKU ya existe",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-04-3",
+    "funcionalidad": "PF-04 Registrar producto",
+    "tipo": "Datos inválidos",
+    "nombre": "Precio cero y EAN-13 con dígito de control incorrecto",
+    "accion": "Registrar FER-0061 con precio de venta 0 y el código EAN-13 «7701234567890».",
+    "esperada": "Mensajes por campo: «Debe ser mayor que cero» y «El dígito de control no es válido».",
+    "obtenida": "Debe ser mayor que cero",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-05-1",
+    "funcionalidad": "PF-05 Consultar productos",
+    "tipo": "Exitosa",
+    "nombre": "Búsqueda por nombre parcial",
+    "accion": "En Catálogo escribir «mart» en el buscador.",
+    "esperada": "Se lista el producto «Martillo de uña 16 oz» con SKU, precio y existencia.",
+    "obtenida": "Martillo de uña 16 oz",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-05-2",
+    "funcionalidad": "PF-05 Consultar productos",
+    "tipo": "Error",
+    "nombre": "Búsqueda sin coincidencias",
+    "accion": "Escribir «zzzz» en el buscador.",
+    "esperada": "Mensaje «No se encontraron productos».",
+    "obtenida": "No se encontraron productos",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-05-3",
+    "funcionalidad": "PF-05 Consultar productos",
+    "tipo": "Datos inválidos",
+    "nombre": "Búsqueda por nombre con menos de 3 caracteres",
+    "accion": "Escribir «ma» en el buscador.",
+    "esperada": "Mensaje que indica que no hay un SKU o código con ese valor y que para buscar por nombre se requieren al menos 3 caracteres.",
+    "obtenida": "No hay un SKU o código con ese valor. Para buscar por nombre escriba al menos 3 caracteres",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-06-1",
+    "funcionalidad": "PF-06 Registrar entrada de inventario",
+    "tipo": "Exitosa",
+    "nombre": "Entrada por recepción de mercancía",
+    "accion": "En Movimientos buscar «Martillo», elegir «Entrada · Recepción», cantidad 10, observación «Factura 5530 Distribuidora Andina»; pulsar «Registrar entrada».",
+    "esperada": "Mensaje «Entrada registrada. FER-0012: stock 15 → 25» y la ficha muestra el nuevo stock.",
+    "obtenida": "Entrada registrada. FER-0012: stock 15 → 25",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-06-2",
+    "funcionalidad": "PF-06 Registrar entrada de inventario",
+    "tipo": "Error",
+    "nombre": "Entrada de un producto inactivo",
+    "accion": "Buscar «Candado» (VAR-0001, producto inactivo), cantidad 5, observación «Remisión 77»; pulsar «Registrar entrada».",
+    "esperada": "Mensaje «Producto inactivo. Consulte a la Gerencia»; el stock no cambia.",
+    "obtenida": "Producto inactivo. Consulte a la Gerencia",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-06-3",
+    "funcionalidad": "PF-06 Registrar entrada de inventario",
+    "tipo": "Datos inválidos",
+    "nombre": "Entrada con cantidad decimal",
+    "accion": "Buscar «Martillo», cantidad «2.5»; pulsar «Registrar entrada».",
+    "esperada": "Mensaje en el campo «Ingrese un número entero»; no se registra el movimiento.",
+    "obtenida": "Ingrese un número entero",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-07-1",
+    "funcionalidad": "PF-07 Registrar salida por despacho",
+    "tipo": "Exitosa",
+    "nombre": "Salida por despacho",
+    "accion": "Buscar «Bombillo», elegir «Salida · Despacho», cantidad 8, destino «Remisión 1210 · Ferretería El Centro»; pulsar «Registrar salida».",
+    "esperada": "Mensaje «Salida registrada. ELE-0105: stock 48 → 40».",
+    "obtenida": "Salida registrada. ELE-0105: stock 48 → 40",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-07-2",
+    "funcionalidad": "PF-07 Registrar salida por despacho",
+    "tipo": "Error",
+    "nombre": "Salida mayor que la existencia",
+    "accion": "Buscar «Linterna» (existencia 3), cantidad 5, destino «Remisión 1211»; pulsar «Registrar salida».",
+    "esperada": "Mensaje «Existencia insuficiente. Disponible: 3»; el stock no cambia.",
+    "obtenida": "Existencia insuficiente. Disponible: 3",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-07-3",
+    "funcionalidad": "PF-07 Registrar salida por despacho",
+    "tipo": "Datos inválidos",
+    "nombre": "Salida sin destino ni remisión",
+    "accion": "Buscar «Bombillo», cantidad 2 y dejar vacío el destino; pulsar «Registrar salida».",
+    "esperada": "Mensaje en el campo «Indique el destino o el número de remisión del despacho».",
+    "obtenida": "Indique el destino o el número de remisión del despacho",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-08-1",
+    "funcionalidad": "PF-08 Consultar kardex",
+    "tipo": "Exitosa",
+    "nombre": "Kardex de un producto",
+    "accion": "En Kardex buscar «Martillo» (rango por defecto: últimos 30 días).",
+    "esperada": "Se listan los movimientos en orden (INICIAL, DESPACHO, RECEPCIÓN, RECEPCIÓN) con saldos; el último saldo es el stock actual.",
+    "obtenida": "Stock nuevo",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-08-2",
+    "funcionalidad": "PF-08 Consultar kardex",
+    "tipo": "Error",
+    "nombre": "Período sin movimientos",
+    "accion": "Consultar el kardex de «Martillo» entre el 01/01/2026 y el 31/01/2026.",
+    "esperada": "Mensaje «No hay movimientos para el período seleccionado».",
+    "obtenida": "No hay movimientos para el período seleccionado",
+    "estado": "Aprobada"
+  },
+  {
+    "id": "PF-08-3",
+    "funcionalidad": "PF-08 Consultar kardex",
+    "tipo": "Datos inválidos",
+    "nombre": "Fecha inicial mayor que la final",
+    "accion": "Consultar con «Desde» = hoy y «Hasta» = hace 10 días.",
+    "esperada": "Mensaje «La fecha inicial no puede ser mayor que la final».",
+    "obtenida": "La fecha inicial no puede ser mayor que la final",
+    "estado": "Aprobada"
+  }
+]
