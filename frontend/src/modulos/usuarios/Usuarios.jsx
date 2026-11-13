@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import { api, fechaHora } from '../../comun/api';
 import { useSesion } from '../../comun/sesion';
-import { Campo, Entrada, Selector, Alerta, Modal, Insignia } from '../../comun/ui';
+import { Campo, Entrada, Selector, Alerta, Modal, Insignia, BotonIcono } from '../../comun/ui';
+import Icono from '../../comun/iconos';
 import { ListaRequisitos } from '../auth/CambioContrasena';
 
 const ROLES = [{ valor: 'GERENCIA', texto: 'Gerencia / Administrador' }, { valor: 'CAJERO', texto: 'Cajero' }, { valor: 'BODEGUERO', texto: 'Bodeguero' }];
@@ -49,7 +50,7 @@ function Formulario({ editar, onListo, onCancelar }) {
         <ListaRequisitos clave={d.contrasena} usuario={d.nombre_usuario} />
       </>)}
       <Alerta>{err.mensaje && err.mensaje !== 'Revise los datos ingresados' && err.mensaje !== 'Datos duplicados' ? err.mensaje : ''}</Alerta>
-      <div className="row derecha"><button type="button" className="btn" onClick={onCancelar}>Cancelar</button><button className="btn p">Guardar</button></div>
+      <div className="row derecha"><button type="button" className="btn" onClick={onCancelar}><Icono n="cerrar" />Cancelar</button><button className="btn p"><Icono n="guardar" />Guardar</button></div>
     </form>
   );
 }
@@ -84,29 +85,29 @@ export default function Usuarios() {
         <Campo etiqueta="Buscar"><Entrada placeholder="Nombre, usuario o correo" value={f.q} onChange={e => setF({ ...f, q: e.target.value })} /></Campo>
         <Campo etiqueta="Rol"><Selector opciones={ROLES} vacio="Todos" value={f.rol} onChange={e => setF({ ...f, rol: e.target.value })} /></Campo>
         <Campo etiqueta="Estado"><Selector opciones={[{ valor: 'ACTIVO', texto: 'Activo' }, { valor: 'INACTIVO', texto: 'Inactivo' }, { valor: 'BLOQUEADO', texto: 'Bloqueado' }]} vacio="Todos" value={f.estado} onChange={e => setF({ ...f, estado: e.target.value })} /></Campo>
-        <button className="btn p" onClick={() => setVista('nuevo')}>+ Nuevo usuario</button>
+        <button className="btn p" onClick={() => setVista('nuevo')}><Icono n="mas" />Nuevo usuario</button>
       </div></div>
       <Alerta tipo={aviso.t}>{aviso.m}</Alerta>
       <div className="card tabla"><table>
-        <thead><tr><th>Nombre completo</th><th>Usuario</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>Nombre completo</th><th>Usuario</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th className="th-acc">Acciones</th></tr></thead>
         <tbody>{lista.map(u => (
           <tr key={u.id_usuario}>
-            <td>{u.nombre_completo}</td><td>{u.nombre_usuario}</td><td>{u.correo}</td><td>{nombreRol(u.rol)}</td><td><Estado u={u} /></td>
+            <td><span className="celda-persona"><span className="avatar sm" aria-hidden="true">{u.nombre_completo.split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase()}</span>{u.nombre_completo}</span></td><td>{u.nombre_usuario}</td><td>{u.correo}</td><td>{nombreRol(u.rol)}</td><td><Estado u={u} /></td>
             <td>{u.ultimo_acceso ? fechaHora(u.ultimo_acceso) : '—'}</td>
-            <td className="acciones">
-              <button className="lnk" onClick={() => setVista(u)}>Editar</button>
+            <td className="acciones"><div className="grupo-bi">
+              <BotonIcono icono="editar" texto={`Editar ${u.nombre_usuario}`} onClick={() => setVista(u)} />
+              {u.estado === 'ACTIVO' && <BotonIcono icono="llave" texto={`Restablecer contraseña de ${u.nombre_usuario}`} tono="aviso" onClick={() => setConfirmar({ u, accion: 'restablecer' })} />}
               {u.id_usuario !== usuario.id && (u.estado === 'ACTIVO'
-                ? <button className="lnk" onClick={() => setConfirmar({ u, accion: 'INACTIVO' })}>Desactivar</button>
-                : <button className="lnk" onClick={() => setConfirmar({ u, accion: 'ACTIVO' })}>Reactivar</button>)}
-              {u.estado === 'ACTIVO' && <button className="lnk" onClick={() => setConfirmar({ u, accion: 'restablecer' })}>Restablecer contraseña</button>}
-            </td>
+                ? <BotonIcono icono="apagar" texto={`Desactivar ${u.nombre_usuario}`} tono="peligro" onClick={() => setConfirmar({ u, accion: 'INACTIVO' })} />
+                : <BotonIcono icono="activar" texto={`Reactivar ${u.nombre_usuario}`} tono="exito" onClick={() => setConfirmar({ u, accion: 'ACTIVO' })} />)}
+            </div></td>
           </tr>))}
           {!lista.length && <tr><td colSpan="7" className="mut">No se encontraron usuarios</td></tr>}
         </tbody></table></div>
       {confirmar && (
         <Modal titulo={{ INACTIVO: 'Desactivar cuenta', ACTIVO: 'Reactivar cuenta', restablecer: 'Restablecer contraseña' }[confirmar.accion]} onCerrar={() => setConfirmar(null)}>
           <p className="mut">{{ INACTIVO: `La cuenta ${confirmar.u.nombre_usuario} quedará inactiva y se cerrarán sus sesiones. Su historial se conserva.`, ACTIVO: `La cuenta ${confirmar.u.nombre_usuario} podrá volver a ingresar.`, restablecer: `Se generará una contraseña temporal de 24 horas para ${confirmar.u.nombre_usuario} y se cerrarán sus sesiones.` }[confirmar.accion]}</p>
-          <div className="row derecha"><button className="btn" onClick={() => setConfirmar(null)}>Cancelar</button><button className="btn p" onClick={ejecutar}>Confirmar</button></div>
+          <div className="row derecha"><button className="btn" onClick={() => setConfirmar(null)}>Cancelar</button><button className={'btn ' + (confirmar.accion === 'INACTIVO' ? 'peligro' : 'p')} onClick={ejecutar}>Confirmar</button></div>
         </Modal>)}
       {temporal && (
         <Modal titulo="Contraseña temporal generada" onCerrar={() => setTemporal(null)}>

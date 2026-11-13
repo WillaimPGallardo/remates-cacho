@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../comun/api';
 import { useSesion } from '../../comun/sesion';
+import Icono from '../../comun/iconos';
 
 export default function Panel() {
   const { usuario, puede } = useSesion();
@@ -23,20 +24,22 @@ export default function Panel() {
       {d && (
         <>
           <div className="row" style={{ marginBottom: 14 }}>
-            <div className="kpi"><span>Productos registrados</span><b>{d.total}</b></div>
-            <div className="kpi"><span>Productos con bajo stock</span><b>{d.bajos.total}</b><small>stock actual ≤ stock mínimo</small></div>
+            <Link className="kpi kpi-ico azul" to="/productos"><i><Icono n="catalogo" tam={22} /></i><div><span>Productos registrados</span><b>{d.total}</b></div></Link>
+            <div className={'kpi kpi-ico ' + (d.bajos.total ? 'rojo' : 'verde')}><i><Icono n={d.bajos.total ? 'alerta' : 'guardar'} tam={22} /></i><div><span>Productos con bajo stock</span><b>{d.bajos.total}</b><small>stock actual ≤ stock mínimo</small></div></div>
           </div>
-          <div className="card"><b>Productos con bajo stock</b>
+          <div className="card"><b className="titulo-ico"><Icono n="alerta" />Productos con bajo stock</b>
             {d.bajos.total === 0 ? <p className="mut">No hay productos bajo el mínimo.</p> : (
               <table style={{ marginTop: 8 }}><thead><tr><th>SKU</th><th>Producto</th><th className="right">Stock</th><th className="right">Mínimo</th></tr></thead>
-                <tbody>{d.bajos.productos.map(p => <tr key={p.id_producto}><td>{p.sku}</td><td>{p.nombre}</td><td className="right">{p.stock_actual}</td><td className="right">{p.stock_minimo}</td></tr>)}</tbody></table>)}
+                <tbody>{d.bajos.productos.map(p => <tr key={p.id_producto}><td>{p.sku}</td><td>{p.nombre}</td><td className="right"><span className="stock-bajo">{p.stock_actual}</span></td><td className="right">{p.stock_minimo}</td></tr>)}</tbody></table>)}
           </div>
         </>
       )}
-      <div className="row">
-        {puede('PRODUCTOS_GESTIONAR') && <Link className="btn" to="/productos/nuevo">Nuevo producto</Link>}
-        {puede('MOVIMIENTOS_REGISTRAR') && <Link className="btn" to="/movimientos">Registrar movimiento</Link>}
-        {puede('KARDEX_CONSULTAR') && <Link className="btn" to="/kardex">Consultar kardex</Link>}
+      <h2 className="sec">Accesos rápidos</h2>
+      <div className="accesos">
+        {puede('PRODUCTOS_GESTIONAR') && <Link className="acceso" to="/productos/nuevo"><i><Icono n="mas" tam={22} /></i><b>Nuevo producto</b><span>Registrar en el catálogo</span></Link>}
+        {puede('MOVIMIENTOS_REGISTRAR') && <Link className="acceso" to="/movimientos"><i><Icono n="movimientos" tam={22} /></i><b>Registrar movimiento</b><span>Entradas y salidas</span></Link>}
+        {puede('KARDEX_CONSULTAR') && <Link className="acceso" to="/kardex"><i><Icono n="kardex" tam={22} /></i><b>Consultar kardex</b><span>Historial por producto</span></Link>}
+        {puede('USUARIOS_GESTIONAR') && <Link className="acceso" to="/usuarios"><i><Icono n="usuarios" tam={22} /></i><b>Usuarios</b><span>Cuentas y roles</span></Link>}
       </div>
     </>
   );

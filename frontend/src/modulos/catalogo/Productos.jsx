@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { api, dinero } from '../../comun/api';
 import { useSesion } from '../../comun/sesion';
-import { Campo, Entrada, Selector, Alerta, Insignia } from '../../comun/ui';
+import { Campo, Entrada, Selector, Alerta, Insignia, BotonIcono } from '../../comun/ui';
+import Icono from '../../comun/iconos';
 
 export default function Productos() {
   const { puede } = useSesion();
@@ -31,23 +32,23 @@ export default function Productos() {
         <Campo etiqueta="Categoría"><Selector vacio="Todas" opciones={listas.categorias.map(c => ({ valor: c.id_categoria, texto: c.nombre }))} value={f.id_categoria} onChange={e => setF({ ...f, id_categoria: e.target.value })} /></Campo>
         {gestiona && <Campo etiqueta="Estado"><Selector vacio="Todos" opciones={[{ valor: 'ACTIVO', texto: 'Activos' }, { valor: 'INACTIVO', texto: 'Inactivos' }]} value={f.estado} onChange={e => setF({ ...f, estado: e.target.value })} /></Campo>}
         <label className="check"><input type="checkbox" checked={f.bajo_stock === 'true'} onChange={e => setF({ ...f, bajo_stock: e.target.checked ? 'true' : '' })} /> Solo bajo stock</label>
-        {gestiona && <Link className="btn p" to="/productos/nuevo">+ Nuevo producto</Link>}
+        {gestiona && <Link className="btn p" to="/productos/nuevo"><Icono n="mas" />Nuevo producto</Link>}
       </div></div>
       <Alerta tipo="s">{state?.aviso}</Alerta>
       <Alerta>{error}</Alerta>
       <div className="card tabla"><table>
-        <thead><tr><th>SKU</th><th>Nombre</th><th>Categoría</th><th>Código</th><th className="right">Precio venta</th>{gestiona && <th className="right">Precio compra</th>}<th className="right">Stock</th><th>Ubicación</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>SKU</th><th>Nombre</th><th>Categoría</th><th>Código</th><th className="right">Precio venta</th>{gestiona && <th className="right">Precio compra</th>}<th className="right">Stock</th><th>Ubicación</th><th>Estado</th><th className="th-acc">Acciones</th></tr></thead>
         <tbody>{r.productos.map(p => (
           <tr key={p.id_producto}>
             <td>{p.sku}</td><td>{p.nombre}</td><td>{p.categoria}</td><td className="mono">{p.codigo}</td><td className="right">{dinero(p.precio_venta)}</td>
             {gestiona && <td className="right">{dinero(p.precio_compra)}</td>}
-            <td className={'right' + (p.bajo_stock ? ' bajo' : '')}>{p.stock_actual}{p.bajo_stock ? ' ⚠' : ''}</td><td>{p.ubicacion || '—'}</td>
+            <td className={'right' + (p.bajo_stock ? ' bajo' : '')}>{p.bajo_stock ? <span className="stock-bajo" title="Bajo el stock mínimo"><Icono n="alerta" tam={14} />{p.stock_actual}</span> : p.stock_actual}</td><td>{p.ubicacion || '—'}</td>
             <td>{p.estado === 'ACTIVO' ? <Insignia tipo="ok">Activo</Insignia> : <Insignia tipo="no">Inactivo</Insignia>}</td>
-            <td className="acciones">
-              {gestiona && <Link className="lnk" to={`/productos/${p.id_producto}`}>Editar</Link>}
-              {gestiona && <Link className="lnk" to={`/productos/${p.id_producto}/codigo`}>Código y etiquetas</Link>}
-              {puede('KARDEX_CONSULTAR') && <Link className="lnk" to={`/kardex?producto=${p.id_producto}`}>Kardex</Link>}
-            </td>
+            <td className="acciones"><div className="grupo-bi">
+              {gestiona && <BotonIcono icono="editar" texto={`Editar ${p.sku}`} a={`/productos/${p.id_producto}`} />}
+              {gestiona && <BotonIcono icono="codigo" texto={`Código y etiquetas de ${p.sku}`} a={`/productos/${p.id_producto}/codigo`} />}
+              {puede('KARDEX_CONSULTAR') && <BotonIcono icono="kardex" texto={`Kardex de ${p.sku}`} a={`/kardex?producto=${p.id_producto}`} />}
+            </div></td>
           </tr>))}
           {!r.productos.length && <tr><td colSpan="10" className="mut">{r.mensaje || 'No se encontraron productos'}</td></tr>}
         </tbody></table></div>

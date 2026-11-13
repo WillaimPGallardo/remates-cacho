@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
 import { api, dinero } from '../../comun/api';
 import { Campo, Entrada, Selector, Alerta } from '../../comun/ui';
+import Icono from '../../comun/iconos';
 
 const TIPOS = [{ valor: 'EAN_13', texto: 'EAN-13 (13 dígitos)' }, { valor: 'UPC_A', texto: 'UPC-A (12 dígitos)' }, { valor: 'CODE_128', texto: 'Code 128' }];
 
@@ -37,15 +38,15 @@ export default function CodigoEtiqueta() {
             <Campo etiqueta="Tipo de código comercial"><Selector opciones={TIPOS} value={d.tipo} onChange={e => setD({ ...d, tipo: e.target.value })} /></Campo>
             <Campo etiqueta="Código comercial" error={msg.campos?.codigo}><Entrada className={'in mono' + (msg.campos?.codigo ? ' err' : '')} value={d.codigo} onChange={e => setD({ ...d, codigo: e.target.value })} /></Campo>
           </div>
-          <div className="row"><button className="btn p" onClick={() => guardar(false)}>Guardar código comercial</button><button className="btn" onClick={() => guardar(true)}>Generar código interno</button></div>
+          <div className="row"><button className="btn p" onClick={() => guardar(false)}><Icono n="guardar" />Guardar código comercial</button><button className="btn" onClick={() => guardar(true)}><Icono n="codigo" />Generar código interno</button></div>
           <p className="mut">El código interno usa el formato RC + 8 dígitos consecutivos (Code 128) y no se repite.</p>
         </div>
         <div className="card" style={{ flex: 1 }}>
           <b>Etiqueta (50 × 25 mm)</b>
           <div className="row"><Campo etiqueta="Número de copias" obligatorio error={copiasOk ? '' : 'Entero de 1 a 100'}><Entrada value={copias} onChange={e => setCopias(e.target.value)} error={!copiasOk} /></Campo>
-            <button className={'btn ' + (copiasOk ? 'p' : 'dis')} disabled={!copiasOk} onClick={() => window.print()}>Imprimir etiquetas</button></div>
+            <button className={'btn ' + (copiasOk ? 'p' : 'dis')} disabled={!copiasOk} onClick={() => window.print()}><Icono n="imprimir" />Imprimir etiquetas</button></div>
           <Alerta tipo="i">Antes de rotular, escanee una etiqueta impresa con el celular para comprobar su lectura.</Alerta>
-          <Link to="/productos" className="lnk">← Volver al catálogo</Link>
+          <Link to="/productos" className="lnk volver"><Icono n="volver" tam={16} />Volver al catálogo</Link>
         </div>
       </div>
       <div className="etiquetas">

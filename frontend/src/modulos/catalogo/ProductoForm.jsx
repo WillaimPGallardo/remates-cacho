@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../comun/api';
 import { Campo, Entrada, Selector, Alerta, Modal } from '../../comun/ui';
+import Icono from '../../comun/iconos';
 
 const TIPOS = [{ valor: 'EAN_13', texto: 'EAN-13' }, { valor: 'UPC_A', texto: 'UPC-A' }, { valor: 'CODE_128', texto: 'Code 128' }];
 
@@ -78,8 +79,8 @@ export default function ProductoForm() {
         </div>
       </div>
       <Alerta>{err.mensaje && !['Revise los datos ingresados', 'Código duplicado'].includes(err.mensaje) ? err.mensaje : ''}</Alerta>
-      {recargar && <div className="row derecha"><button type="button" className="btn" onClick={() => { setRecargar(false); setErr({ campos: {}, mensaje: '' }); cargar(); }}>Recargar la ficha</button></div>}
-      <div className="row derecha"><button type="button" className="btn" onClick={() => nav('/productos')}>Cancelar</button><button className="btn p">Guardar</button></div>
+      {recargar && <div className="row derecha"><button type="button" className="btn" onClick={() => { setRecargar(false); setErr({ campos: {}, mensaje: '' }); cargar(); }}><Icono n="recargar" />Recargar la ficha</button></div>}
+      <div className="row derecha"><button type="button" className="btn" onClick={() => nav('/productos')}><Icono n="cerrar" />Cancelar</button><button className="btn p"><Icono n="guardar" />Guardar</button></div>
       {confirmar && (
         <Modal titulo={confirmar.tipo === 'precio' ? 'Precio de venta menor que el de compra' : 'Inactivar producto con existencias'} onCerrar={() => setConfirmar(null)}>
           <p className="mut">{confirmar.texto}</p>

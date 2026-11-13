@@ -2,7 +2,8 @@
 // Los ajustes con autorización (RF-08) se incorporan en la siguiente entrega.
 import { useEffect, useState } from 'react';
 import { api, nuevaClave } from '../../comun/api';
-import { Campo, Entrada, Alerta } from '../../comun/ui';
+import { Campo, Entrada, Alerta, BotonIcono } from '../../comun/ui';
+import Icono from '../../comun/iconos';
 
 export function BuscadorProducto({ valor, onElegir, error }) {
   const [q, setQ] = useState('');
@@ -14,9 +15,10 @@ export function BuscadorProducto({ valor, onElegir, error }) {
       .then(r => { setRes(r.productos); setAviso(r.mensaje || ''); }).catch(() => { setRes([]); setAviso(''); }), 250);
     return () => clearTimeout(t);
   }, [q]);
-  if (valor) return (<div className="elegido"><span><b>{valor.sku}</b> · {valor.nombre}</span><button type="button" className="lnk" onClick={() => onElegir(null)}>Cambiar</button></div>);
+  if (valor) return (<div className="elegido"><span><b>{valor.sku}</b> · {valor.nombre}</span><BotonIcono icono="cerrar" texto="Cambiar producto" onClick={() => onElegir(null)} /></div>);
   return (
     <div className="buscador">
+      <Icono n="buscar" className="buscador-ico" />
       <Entrada aria-label="Buscar producto por nombre, SKU o código de barras" placeholder="Nombre, SKU o código de barras" value={q} onChange={e => setQ(e.target.value)} error={error} autoFocus />
       {res.length > 0 && <div className="sugerencias">{res.map(p => (
         <button type="button" key={p.id_producto} onClick={() => { onElegir(p); setQ(''); }}><b>{p.sku}</b> · {p.nombre} <span className="mut">· existencia {p.stock_actual} · {p.ubicacion || 'sin ubicación'}</span></button>))}</div>}
@@ -71,8 +73,8 @@ export default function Movimiento() {
         <div className="card" style={{ flex: 1.6 }}>
           <Campo etiqueta="Producto" obligatorio error={c.id_producto}><BuscadorProducto valor={prod} onElegir={setProd} error={c.id_producto} /></Campo>
           <div className="f"><label>Tipo de movimiento *</label>
-            <div className="seg">{[['ENTRADA', 'Entrada · Recepción'], ['SALIDA', 'Salida · Despacho']].map(([v, t]) =>
-              <button type="button" key={v} className={d.tipo === v ? 'on' : ''} onClick={() => setD(x => ({ ...x, tipo: v }))}>{t}</button>)}</div>
+            <div className="seg">{[['ENTRADA', 'Entrada · Recepción', 'entrada'], ['SALIDA', 'Salida · Despacho', 'salida']].map(([v, t, i]) =>
+              <button type="button" key={v} className={(d.tipo === v ? 'on ' : '') + v.toLowerCase()} aria-pressed={d.tipo === v} onClick={() => setD(x => ({ ...x, tipo: v }))}><Icono n={i} />{t}</button>)}</div>
             <div className="msg-h">Las salidas por venta y las entradas iniciales las genera el sistema.</div></div>
           <div className="row">
             <Campo etiqueta="Cantidad" obligatorio error={c.cantidad} ayuda="Entero de 1 a 99 999"><Entrada inputMode="numeric" value={d.cantidad} onChange={e => { const v = e.target.value; setD(x => ({ ...x, cantidad: v })); }} error={c.cantidad} /></Campo>
@@ -86,12 +88,12 @@ export default function Movimiento() {
           <Alerta tipo="s">{ok}</Alerta>
           {verificando && <Alerta tipo="s">Verificando…</Alerta>}
           <div className="row derecha">
-            {err.mensaje.startsWith('No fue posible confirmar') && <button type="button" className="btn" onClick={verificar}>Verificar</button>}
-            <button className="btn p" disabled={verificando}>Registrar {d.tipo === 'ENTRADA' ? 'entrada' : 'salida'}</button>
+            {err.mensaje.startsWith('No fue posible confirmar') && <button type="button" className="btn" onClick={verificar}><Icono n="recargar" />Verificar</button>}
+            <button className="btn p" disabled={verificando}><Icono n={d.tipo === 'ENTRADA' ? 'entrada' : 'salida'} />Registrar {d.tipo === 'ENTRADA' ? 'entrada' : 'salida'}</button>
           </div>
         </div>
         <div className="card" style={{ flex: 1 }}>
-          <b>Ficha del producto</b>
+          <b className="titulo-ico"><Icono n="catalogo" />Ficha del producto</b>
           {prod ? (<>
             <div className="kv"><span>SKU</span>{prod.sku}</div><div className="kv"><span>Categoría</span>{prod.categoria}</div>
             <div className="kv"><span>Ubicación</span>{prod.ubicacion || '—'}</div><div className="kv"><span>Stock actual</span><b>{prod.stock_actual}</b></div>

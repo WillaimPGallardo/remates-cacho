@@ -87,7 +87,7 @@ with sync_playwright() as p:
 
     def abrir_nuevo_usuario():
         pg.goto(URL + '/usuarios')
-        pg.get_by_role('button', name='+ Nuevo usuario').click()
+        pg.get_by_role('button', name='Nuevo usuario').click()
 
     def llenar_usuario(nombre, usuario, correo, clave, conf):
         abrir_nuevo_usuario()
@@ -100,7 +100,7 @@ with sync_playwright() as p:
         pg.get_by_role('button', name='Guardar').click()
 
     caso(pg, 'PF-02-1', F, 'Exitosa', 'Registro de un usuario nuevo',
-         'En Usuarios pulsar «+ Nuevo usuario», diligenciar Ana Gómez / bodeguero2 / ana@rematescacho.com, rol Bodeguero, '
+         'En Usuarios pulsar «Nuevo usuario», diligenciar Ana Gómez / bodeguero2 / ana@rematescacho.com, rol Bodeguero, '
          'contraseña inicial «bodega del sector sur» y su confirmación; pulsar «Guardar».',
          'Mensaje «Usuario creado. Deberá cambiar la contraseña inicial en su primer ingreso» y el usuario aparece Activo en el listado.',
          lambda: llenar_usuario('Ana Gómez', 'bodeguero2', 'ana@rematescacho.com', 'bodega del sector sur', 'bodega del sector sur'),
